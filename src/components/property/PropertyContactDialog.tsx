@@ -46,16 +46,21 @@ const PropertyContactDialog = ({
 
   useEffect(() => {
     const checkAuth = async () => {
-      const user = await authAPI.verifyToken();
-      
-      if (user) {
-        setIsAuthenticated(true);
-        setUserDetails({
-          name: user.name || '',
-          email: user.email || '',
-          phone: user.phone || ''
-        });
-      } else {
+      try {
+        const user = await authAPI.verifyToken();
+        
+        if (user.data) {
+          setIsAuthenticated(true);
+          setUserDetails({
+            name: user.data.name || '',
+            email: user.data.email || '',
+            phone: user.data.phone || ''
+          });
+        } else {
+          setIsAuthenticated(false);
+          setUserDetails(null);
+        }
+      } catch (err) {
         setIsAuthenticated(false);
         setUserDetails(null);
       }

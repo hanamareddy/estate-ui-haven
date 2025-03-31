@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -194,14 +193,14 @@ const BuyerDashboard = () => {
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/4 h-48 md:h-auto relative">
                           <img 
-                            src={inquiry.propertyImage || '/placeholder.svg'} 
-                            alt={inquiry.propertyTitle || 'Property'} 
+                            src={inquiry.property_image || '/placeholder.svg'} 
+                            alt={inquiry.property_title || 'Property'} 
                             className="w-full h-full object-cover"
                           />
                         </div>
                         <div className="flex-1 p-6">
                           <div className="flex justify-between mb-4">
-                            <h3 className="text-xl font-medium">{inquiry.propertyTitle || 'Property'}</h3>
+                            <h3 className="text-xl font-medium">{inquiry.property_title || 'Property'}</h3>
                             <Badge 
                               variant={
                                 inquiry.status === 'responded' ? 'secondary' : 
@@ -211,12 +210,12 @@ const BuyerDashboard = () => {
                               {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
                             </Badge>
                           </div>
-                          <p className="text-gray-600 mb-2">{inquiry.propertyAddress || 'Address not available'}</p>
+                          <p className="text-gray-600 mb-2">Address information</p>
                           
                           <div className="flex justify-between items-center mb-4">
                             <div>
-                              <span className="text-gray-800 font-medium">₹{formatCurrency(inquiry.propertyPrice || 0)}</span>
-                              <span className="text-gray-500 ml-2 text-sm">Inquiry sent on {format(new Date(inquiry.createdAt), 'MMM dd, yyyy')}</span>
+                              <span className="text-gray-800 font-medium">Price information</span>
+                              <span className="text-gray-500 ml-2 text-sm">Inquiry sent on {format(new Date(inquiry.created_at), 'MMM dd, yyyy')}</span>
                             </div>
                           </div>
                           
@@ -225,10 +224,10 @@ const BuyerDashboard = () => {
                             <p className="text-gray-600">{inquiry.message}</p>
                           </div>
                           
-                          {inquiry.sellerResponse && (
+                          {inquiry.seller_response && (
                             <div className="bg-blue-50 p-4 rounded-md">
                               <h4 className="font-medium mb-2">Seller Response:</h4>
-                              <p className="text-gray-600">{inquiry.sellerResponse}</p>
+                              <p className="text-gray-600">{inquiry.seller_response}</p>
                             </div>
                           )}
                           
@@ -236,7 +235,7 @@ const BuyerDashboard = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => navigate(`/property/${inquiry.propertyId}`)}
+                              onClick={() => navigate(`/property/${inquiry.property_id}`)}
                             >
                               View Property
                             </Button>

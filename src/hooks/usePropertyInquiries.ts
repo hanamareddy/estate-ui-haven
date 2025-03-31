@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { inquiries } from '@/services/api';
+import { inquiryAPI } from '@/services/api';
 import mongoAuthService from '@/services/mongoAuthService';
+import { toast } from '@/components/ui/use-toast';
 
 export interface PropertyInquiry {
   id: string;
@@ -26,6 +27,11 @@ export interface UsePropertyInquiriesResult {
   refreshUserInquiries: () => Promise<void>;
   refreshSellerInquiries: () => Promise<void>;
   respondToInquiry: (inquiryId: string, response: string) => Promise<boolean>;
+  createInquiry: (propertyId: string, message: string, contactDetails?: {
+    name: string;
+    email: string;
+    phone?: string;
+  }) => Promise<boolean>;
 }
 
 export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
@@ -43,7 +49,7 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
     
     try {
       setLoading(true);
-      const response = await inquiries.getUserInquiries();
+      const response = await inquiryAPI.getUserInquiries();
       setInquiriesList(response.data);
       setError(null);
     } catch (err) {
@@ -65,7 +71,7 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
     
     try {
       setLoading(true);
-      const response = await inquiries.getSellerInquiries();
+      const response = await inquiryAPI.getSellerInquiries();
       setInquiriesList(response.data);
       setError(null);
     } catch (err) {
@@ -78,7 +84,7 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
 
   const respondToInquiry = useCallback(async (inquiryId: string, response: string): Promise<boolean> => {
     try {
-      await inquiries.respondToInquiry(inquiryId, response);
+      await inquiryAPI.respondToInquiry(inquiryId, response);
       
       // Update local state
       setInquiriesList(prev => prev.map(inquiry => 
@@ -94,6 +100,53 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
       return false;
     }
   }, []);
+
+  const createInquiry = useCallback(async (
+    propertyId: string, 
+    message: string, 
+    contactDetails?: {
+      name: string;
+      email: string;
+      phone?: string;
+    }
+  ): Promise<boolean> => {
+    try {
+      // Check if user is authenticated
+      const token = mongoAuthService.getToken();
+      
+      if (!token && (!contactDetails?.name || !contactDetails?.email)) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to contact property owners or provide your contact details',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      // Create inquiry with API
+      await inquiryAPI.createInquiry(propertyId, message, !token ? contactDetails : undefined);
+      
+      toast({
+        title: 'Inquiry Sent',
+        description: 'Your message has been sent to the property owner',
+      });
+      
+      // Refresh inquiries if user is logged in
+      if (token) {
+        refreshUserInquiries();
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating property inquiry:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send your inquiry. Please try again',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [refreshUserInquiries]);
 
   // On mount, check if user is a seller and load appropriate inquiries
   useEffect(() => {
@@ -115,6 +168,9 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
     error,
     refreshUserInquiries,
     refreshSellerInquiries,
-    respondToInquiry
+    respondToInquiry,
+    createInquiry
   };
 };
+
+export default usePropertyInquiries;

@@ -27,62 +27,65 @@ api.interceptors.request.use(
 );
 
 // API endpoints for Auth
-const auth = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (email, password) => api.post('/auth/login', { email, password }),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
-  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
-  resendEmailVerification: (email) => api.post('/auth/resend-verification', { email }),
-  googleSignIn: (credential) => api.post('/auth/google', { credential }),
-  verifyPhoneOtp: (email, otp) => api.post('/auth/verify-phone', { email, otp }),
-  resendPhoneOtp: (email) => api.post('/auth/resend-phone-otp', { email }),
+const authAPI = {
+  register: (userData: any) => api.post('/auth/register', userData),
+  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) => api.post(`/auth/reset-password/${token}`, { password }),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+  resendEmailVerification: (email: string) => api.post('/auth/resend-verification', { email }),
+  googleSignIn: (credential: string) => api.post('/auth/google', { credential }),
+  verifyPhoneOtp: (email: string, otp: string) => api.post('/auth/verify-phone', { email, otp }),
+  resendPhoneOtp: (email: string) => api.post('/auth/resend-phone-otp', { email }),
+  verifyToken: () => api.get('/auth/verify'),
 };
 
 // API endpoints for User
-const user = {
+const userAPI = {
   getProfile: () => api.get('/user/profile'),
-  updateProfile: (data) => api.put('/user/profile', data),
+  updateProfile: (data: any) => api.put('/user/profile', data),
   getNotifications: () => api.get('/user/notifications'),
-  markNotificationRead: (id) => api.put(`/user/notifications/${id}/read`),
+  markNotificationRead: (id: string) => api.put(`/user/notifications/${id}/read`),
   markAllNotificationsRead: () => api.put('/user/notifications/read-all'),
   getFavorites: () => api.get('/user/favorites'),
-  addToFavorites: (propertyId) => api.post(`/user/favorites/${propertyId}`),
-  removeFromFavorites: (propertyId) => api.delete(`/user/favorites/${propertyId}`),
-  checkFavorite: (propertyId) => api.get(`/user/favorites/check/${propertyId}`),
+  addToFavorites: (propertyId: string) => api.post(`/user/favorites/${propertyId}`),
+  removeFromFavorites: (propertyId: string) => api.delete(`/user/favorites/${propertyId}`),
+  checkFavorite: (propertyId: string) => api.get(`/user/favorites/check/${propertyId}`),
   getSavedSearches: () => api.get('/user/saved-searches'),
-  createSavedSearch: (searchData) => api.post('/user/saved-searches', searchData),
-  updateSavedSearch: (id, searchData) => api.put(`/user/saved-searches/${id}`, searchData),
-  deleteSavedSearch: (id) => api.delete(`/user/saved-searches/${id}`),
-  toggleSearchNotifications: (id, enabled) => 
+  createSavedSearch: (searchData: any) => api.post('/user/saved-searches', searchData),
+  updateSavedSearch: (id: string, searchData: any) => api.put(`/user/saved-searches/${id}`, searchData),
+  deleteSavedSearch: (id: string) => api.delete(`/user/saved-searches/${id}`),
+  toggleSearchNotifications: (id: string, enabled: boolean) => 
     api.put(`/user/saved-searches/${id}/notifications`, { enabled }),
+  deleteSearch: (id: string) => api.delete(`/user/saved-searches/${id}`),
 };
 
 // API endpoints for Properties
 const propertyAPI = {
-  getProperties: (filters) => api.get('/properties', { params: filters }),
-  getProperty: (id) => api.get(`/properties/${id}`),
-  createProperty: (propertyData) => api.post('/properties', propertyData),
-  updateProperty: (id, propertyData) => api.put(`/properties/${id}`, propertyData),
-  deleteProperty: (id) => api.delete(`/properties/${id}`),
+  getProperties: (filters: any) => api.get('/properties', { params: filters }),
+  getProperty: (id: string) => api.get(`/properties/${id}`),
+  createProperty: (propertyData: any) => api.post('/properties', propertyData),
+  updateProperty: (id: string, propertyData: any) => api.put(`/properties/${id}`, propertyData),
+  deleteProperty: (id: string) => api.delete(`/properties/${id}`),
   getSellerProperties: () => api.get('/properties/seller'),
 };
 
 // API endpoints for Inquiries
-const inquiries = {
-  createInquiry: (inquiryData) => api.post('/inquiries', inquiryData),
+const inquiryAPI = {
+  createInquiry: (propertyId: string, message: string, contactDetails?: any) => 
+    api.post('/inquiries', { propertyId, message, contactDetails }),
   getUserInquiries: () => api.get('/inquiries/user'),
   getSellerInquiries: () => api.get('/inquiries/seller'),
-  respondToInquiry: (id, response) => api.post(`/inquiries/${id}/respond`, { response }),
+  respondToInquiry: (inquiryId: string, response: string) => 
+    api.post(`/inquiries/${inquiryId}/respond`, { response }),
 };
 
 // Export all API services
 export {
+  api as default,
   api,
-  auth,
-  user as userAPI,
+  authAPI,
+  userAPI,
   propertyAPI,
-  inquiries,
+  inquiryAPI,
 };
-
-export default api;

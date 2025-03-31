@@ -1,202 +1,162 @@
 
-import { api } from './api';
+import axios from 'axios';
+import { authAPI } from './api';
 
-const mongoAuthService = {
-  /**
-   * Register a new user
-   * @param userData User registration data
-   * @returns Promise with registration response
-   */
-  registerUser: async (userData) => {
-    try {
-      const response = await api.auth.register(userData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
+class MongoAuthService {
+  private user: any | null = null;
+  private token: string | null = null;
 
-  /**
-   * Login with email and password
-   * @param email User email
-   * @param password User password
-   * @returns Promise with login response including JWT token
-   */
-  loginWithEmailPassword: async (email, password) => {
+  constructor() {
+    this.loadUserFromStorage();
+  }
+
+  async login(email: string, password: string) {
     try {
-      const response = await api.auth.login(email, password);
+      const response = await authAPI.login(email, password);
+      const { token, user } = response.data;
       
-      // Store token in localStorage
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
-        
-        // Store user profile for quick access
-        if (response.data.user) {
-          localStorage.setItem('user_profile', JSON.stringify(response.data.user));
-        }
-      }
-      
-      return response.data;
+      this.setAuthData(token, user);
+      return user;
     } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Sign in with Google
-   * @param credential Google ID token
-   * @returns Promise with Google sign-in response
-   */
-  signInWithGoogle: async (credential) => {
-    try {
-      const response = await api.auth.googleSignIn(credential);
-      
-      // Store token in localStorage
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
-        
-        // Store user profile for quick access
-        if (response.data.user) {
-          localStorage.setItem('user_profile', JSON.stringify(response.data.user));
-        }
-      }
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Verify phone OTP
-   * @param email User email
-   * @param otp OTP code
-   * @returns Promise with verification response
-   */
-  verifyPhoneOtp: async (email, otp) => {
-    try {
-      const response = await api.auth.verifyPhoneOtp(email, otp);
-      
-      // If verified and token provided, store it
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
-        
-        // Store user profile for quick access
-        if (response.data.user) {
-          localStorage.setItem('user_profile', JSON.stringify(response.data.user));
-        }
-      }
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Resend phone OTP
-   * @param email User email
-   * @returns Promise with resend response
-   */
-  resendPhoneOtp: async (email) => {
-    try {
-      const response = await api.auth.resendPhoneOtp(email);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Request password reset
-   * @param email User email
-   * @returns Promise with reset request response
-   */
-  requestPasswordReset: async (email) => {
-    try {
-      const response = await api.auth.forgotPassword(email);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Reset password using token
-   * @param token Reset token
-   * @param password New password
-   * @returns Promise with reset response
-   */
-  resetPassword: async (token, password) => {
-    try {
-      const response = await api.auth.resetPassword(token, password);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Sign out the current user
-   */
-  signOut: () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_profile');
-    // No need to call API endpoint for signout as we're using JWTs
-  },
-
-  /**
-   * Get the current signed-in user
-   * @returns User object or null if not signed in
-   */
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user_profile');
-    return userStr ? JSON.parse(userStr) : null;
-  },
-
-  /**
-   * Check if user is authenticated
-   * @returns Boolean indicating if user is authenticated
-   */
-  isAuthenticated: () => {
-    return !!localStorage.getItem('auth_token');
-  },
-
-  /**
-   * Get authentication token
-   * @returns JWT token or null
-   */
-  getToken: () => {
-    return localStorage.getItem('auth_token');
-  },
-
-  /**
-   * Verify email address
-   * @param token Verification token
-   * @returns Promise with verification response
-   */
-  verifyEmail: async (token) => {
-    try {
-      const response = await api.auth.verifyEmail(token);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Resend email verification
-   * @param email User email
-   * @returns Promise with resend response
-   */
-  resendEmailVerification: async (email) => {
-    try {
-      const response = await api.auth.resendEmailVerification(email);
-      return response.data;
-    } catch (error) {
+      console.error('Login failed:', error);
       throw error;
     }
   }
-};
 
+  async register(userData: any) {
+    try {
+      const response = await authAPI.register(userData);
+      const { token, user } = response.data;
+      
+      this.setAuthData(token, user);
+      return user;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  }
+
+  async loginWithGoogle(credential: string) {
+    try {
+      const response = await authAPI.googleSignIn(credential);
+      const { token, user } = response.data;
+      
+      this.setAuthData(token, user);
+      return user;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const response = await authAPI.resetPassword(token, newPassword);
+      return response.data;
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  }
+
+  async forgotPassword(email: string) {
+    try {
+      const response = await authAPI.forgotPassword(email);
+      return response.data;
+    } catch (error) {
+      console.error('Forgot password request failed:', error);
+      throw error;
+    }
+  }
+
+  async verifyEmail(token: string) {
+    try {
+      const response = await authAPI.verifyEmail(token);
+      return response.data;
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      throw error;
+    }
+  }
+
+  async resendVerificationEmail(email: string) {
+    try {
+      const response = await authAPI.resendEmailVerification(email);
+      return response.data;
+    } catch (error) {
+      console.error('Resend verification email failed:', error);
+      throw error;
+    }
+  }
+
+  logout() {
+    this.user = null;
+    this.token = null;
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
+  }
+
+  getCurrentUser() {
+    return this.user;
+  }
+
+  isAuthenticated() {
+    return !!this.token;
+  }
+
+  getToken() {
+    return this.token;
+  }
+
+  isSeller() {
+    return this.user && this.user.isseller === true;
+  }
+
+  private setAuthData(token: string, user: any) {
+    this.token = token;
+    this.user = user;
+    
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('auth_user', JSON.stringify(user));
+  }
+
+  private loadUserFromStorage() {
+    const token = localStorage.getItem('auth_token');
+    const userJson = localStorage.getItem('auth_user');
+    
+    if (token && userJson) {
+      this.token = token;
+      try {
+        this.user = JSON.parse(userJson);
+      } catch (error) {
+        console.error('Error parsing user data from localStorage', error);
+        this.logout(); // Clear invalid data
+      }
+    }
+  }
+
+  async refreshUserData() {
+    try {
+      if (!this.isAuthenticated()) {
+        return null;
+      }
+      
+      const response = await authAPI.verifyToken();
+      const user = response.data;
+      
+      if (user) {
+        this.user = user;
+        localStorage.setItem('auth_user', JSON.stringify(user));
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      this.logout();
+      throw error;
+    }
+  }
+}
+
+const mongoAuthService = new MongoAuthService();
 export default mongoAuthService;

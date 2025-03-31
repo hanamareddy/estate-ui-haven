@@ -4,9 +4,9 @@ import { userAPI } from '@/services/api';
 import mongoAuthService from '@/services/mongoAuthService';
 
 const useFavorites = () => {
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   
   const refreshFavorites = useCallback(async () => {
     // Skip if not authenticated
@@ -18,8 +18,12 @@ const useFavorites = () => {
     
     try {
       setLoading(true);
-      const data = await userAPI.getFavorites();
-      setFavorites(data);
+      const response = await userAPI.getFavorites();
+      if (response && response.data) {
+        setFavorites(response.data);
+      } else {
+        setFavorites([]);
+      }
       setError(null);
     } catch (err) {
       console.error('Error fetching favorites:', err);
@@ -33,7 +37,7 @@ const useFavorites = () => {
     refreshFavorites();
   }, [refreshFavorites]);
 
-  const addToFavorites = useCallback(async (propertyId) => {
+  const addToFavorites = useCallback(async (propertyId: string) => {
     try {
       await userAPI.addToFavorites(propertyId);
       refreshFavorites();
@@ -45,7 +49,7 @@ const useFavorites = () => {
     }
   }, [refreshFavorites]);
 
-  const removeFromFavorites = useCallback(async (propertyId) => {
+  const removeFromFavorites = useCallback(async (propertyId: string) => {
     try {
       await userAPI.removeFromFavorites(propertyId);
       refreshFavorites();
@@ -57,14 +61,14 @@ const useFavorites = () => {
     }
   }, [refreshFavorites]);
 
-  const checkIsFavorite = useCallback(async (propertyId) => {
+  const checkIsFavorite = useCallback(async (propertyId: string) => {
     if (!mongoAuthService.isAuthenticated()) {
       return false;
     }
     
     try {
-      const { isFavorite } = await userAPI.checkFavorite(propertyId);
-      return isFavorite;
+      const response = await userAPI.checkFavorite(propertyId);
+      return response.data?.isFavorite || false;
     } catch (err) {
       console.error('Error checking favorite status:', err);
       return false;
