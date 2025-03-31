@@ -2,14 +2,20 @@
 const nodemailer = require('nodemailer');
 
 /**
- * Send SMS via email-to-SMS gateways
- * This approach uses email-to-SMS gateways provided by major carriers
- * Example: For a Vodafone number 9876543210, send to 9876543210@vodafone.in
- * 
- * NOTE: This is a cost-effective alternative to paid SMS gateways
+ * Send SMS via email-to-SMS gateways or mock in development
  */
 const sendSMS = async (phoneNumber, message) => {
   try {
+    // Development mode - just log the message and return success
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('\x1b[33m%s\x1b[0m', '--- DEVELOPMENT MODE: SMS MESSAGE ---');
+      console.log('\x1b[33m%s\x1b[0m', `To: ${phoneNumber}`);
+      console.log('\x1b[33m%s\x1b[0m', `Message: ${message}`);
+      console.log('\x1b[33m%s\x1b[0m', '------------------------------------');
+      return true;
+    }
+    
+    // Only try to send real SMS in production
     // Remove any non-numeric characters from phone number
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     
@@ -56,6 +62,15 @@ const sendSMS = async (phoneNumber, message) => {
   } catch (error) {
     console.error('Failed to send SMS:', error);
     
+    // In development, we'll consider this a success anyway
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('\x1b[33m%s\x1b[0m', '--- DEVELOPMENT MODE: SMS DELIVERY FALLBACK ---');
+      console.log('\x1b[33m%s\x1b[0m', `Would have sent to: ${phoneNumber}`);
+      console.log('\x1b[33m%s\x1b[0m', `Message: ${message}`);
+      console.log('\x1b[33m%s\x1b[0m', '--------------------------------------------');
+      return true;
+    }
+    
     // Fallback: Just send an email if we can't use SMS gateway
     try {
       // Extract email from user phone (if it's an email)
@@ -87,7 +102,13 @@ const sendSMS = async (phoneNumber, message) => {
       throw new Error('No valid email or phone for sending verification code');
     } catch (fallbackError) {
       console.error('Fallback also failed:', fallbackError);
-      throw error; // Throw the original error
+      
+      // In development, show what would have been sent
+      if (process.env.NODE_ENV !== 'production') {
+        return true;
+      }
+      
+      throw error; // Throw the original error in production
     }
   }
 };

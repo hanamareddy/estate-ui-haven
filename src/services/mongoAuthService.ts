@@ -12,10 +12,15 @@ class MongoAuthService {
   async login(email: string, password: string) {
     try {
       const response = await authAPI.login(email, password);
-      const { token, user } = response.data;
+      const { token, user, verificationStatus } = response.data;
       
       this.setAuthData(token, user);
-      return user;
+      
+      // Return user data with verification status
+      return {
+        ...user,
+        verificationStatus
+      };
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -40,12 +45,15 @@ class MongoAuthService {
   async loginWithGoogle(credential: string) {
     try {
       const response = await authAPI.googleSignIn(credential);
-      const { token, user } = response.data;
+      const { token, user, verificationStatus } = response.data;
       
       if (token && user) {
         this.setAuthData(token, user);
       }
-      return response.data;
+      return {
+        ...response.data,
+        verificationStatus
+      };
     } catch (error) {
       console.error('Google login failed:', error);
       throw error;

@@ -45,14 +45,6 @@ const LoginForm = () => {
       } else {
         navigate('/');
       }
-    } else {
-      // If email verification still needed
-      setShowOtpVerification(false);
-      
-      toast({
-        title: "Phone Verified",
-        description: "Your phone has been verified. Please verify your email to complete login.",
-      });
     }
   };
 
@@ -75,31 +67,32 @@ const LoginForm = () => {
       } else {
         navigate('/');
       }
+      
+      // Show a reminder toast if verification is pending
+      if (response.verificationStatus && 
+          (!response.verificationStatus.phoneVerified || !response.verificationStatus.emailVerified)) {
+        setTimeout(() => {
+          toast({
+            title: "Verification Reminder",
+            description: "Please complete your account verification in your profile settings.",
+            variant: "default",
+          });
+        }, 2000);
+      }
     } catch (error) {
       console.error('Login error:', error);
       
-      // Handle phone verification required
-      if (error.response?.status === 401 && error.response?.data?.phoneVerificationRequired) {
-        setShowOtpVerification(true);
-        
-        toast({
-          title: "Phone Verification Required",
-          description: "Please verify your phone number to continue",
-        });
-      }
-      // Handle email verification required
-      else if (error.response?.status === 401 && error.response?.data?.emailVerificationRequired) {
-        toast({
-          title: "Email Verification Required",
-          description: "Please check your email for a verification link",
-          variant: "destructive",
-        });
-      }
-      // Handle other errors
-      else {
+      // Handle specific error cases
+      if (error.response?.status === 401) {
         toast({
           title: "Login Failed",
           description: error.response?.data?.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "An error occurred. Please try again later.",
           variant: "destructive",
         });
       }

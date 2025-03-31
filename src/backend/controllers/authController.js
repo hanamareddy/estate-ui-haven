@@ -92,37 +92,24 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if phone is verified
-    if (!user.phoneVerified) {
-      // Generate new OTP
-      const phoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.phoneOtp = phoneOtp;
-      await user.save();
-      
-      // Send OTP to phone
-      const otpMessage = `Your EstateHub India verification code is: ${phoneOtp}`;
-      await sendSMS(user.phone, otpMessage);
+    // For login, we'll allow login even if phone/email isn't verified
+    // But we'll send a flag to inform the frontend about verification status
+    const verificationStatus = {
+      phoneVerified: user.phoneVerified,
+      emailVerified: user.emailVerified
+    };
 
-      return res.status(401).json({ 
-        message: 'Phone verification required',
-        phoneVerificationRequired: true, 
-        email 
-      });
-    }
-
-    // Check if email is verified
-    if (!user.emailVerified) {
-      return res.status(401).json({ 
-        message: 'Email verification required. Please check your email.',
-        emailVerificationRequired: true 
-      });
-    }
-
-    // Generate token
+    // Generate token regardless of verification status
     const token = generateToken(user);
 
+    // Update last login
+    user.lastLogin = Date.now();
+    await user.save();
+
+    // Return user data with token and verification status
     res.status(200).json({
       token,
+      verificationStatus,
       user: {
         id: user._id,
         name: user.name,
@@ -168,15 +155,24 @@ exports.googleSignIn = async (req, res) => {
       
       await user.save();
       
-      // Return indicating phone verification is required
+      // Since we're bypassing verification for login, we'll do the same for Google sign-in
+      // Just inform the user they need to complete their profile
+      const token = generateToken(user);
+      
       return res.status(200).json({
+        token,
         message: 'Google sign-in successful. Please complete your profile.',
-        phoneVerificationRequired: true,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
           profilePicture: user.profilePicture,
+          phone: user.phone,
+          isseller: user.isseller || false,
+        },
+        verificationStatus: {
+          phoneVerified: false,
+          emailVerified: true
         }
       });
     }
@@ -187,24 +183,14 @@ exports.googleSignIn = async (req, res) => {
       await user.save();
     }
     
-    // Check if phone is verified for existing users
-    if (!user.phoneVerified) {
-      return res.status(200).json({
-        message: 'Google sign-in successful. Phone verification required.',
-        phoneVerificationRequired: true,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          profilePicture: user.profilePicture || picture,
-        }
-      });
-    }
-    
     // Generate token
     const token = generateToken(user);
     
-    // Return user with token
+    // Update last login
+    user.lastLogin = Date.now();
+    await user.save();
+    
+    // Return user with token and verification status
     return res.status(200).json({
       token,
       user: {
@@ -216,6 +202,10 @@ exports.googleSignIn = async (req, res) => {
         companyName: user.companyName,
         reraId: user.reraId,
         profilePicture: user.profilePicture || picture,
+      },
+      verificationStatus: {
+        phoneVerified: user.phoneVerified,
+        emailVerified: user.emailVerified
       }
     });
   } catch (error) {
@@ -249,26 +239,22 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerificationToken = undefined;
     await user.save();
     
-    // If phone is also verified, generate token
-    if (user.phoneVerified) {
-      const authToken = generateToken(user);
-      
-      return res.status(200).json({
-        message: 'Email verified successfully',
-        token: authToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          isseller: user.isseller,
-          companyName: user.companyName,
-          reraId: user.reraId,
-        }
-      });
-    }
+    // Generate token
+    const authToken = generateToken(user);
     
-    res.status(200).json({ message: 'Email verified successfully' });
+    return res.status(200).json({
+      message: 'Email verified successfully',
+      token: authToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isseller: user.isseller,
+        companyName: user.companyName,
+        reraId: user.reraId,
+      }
+    });
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -294,26 +280,22 @@ exports.verifyPhoneOtp = async (req, res) => {
     user.phoneOtp = undefined;
     await user.save();
     
-    // If email is also verified, generate token
-    if (user.emailVerified) {
-      const token = generateToken(user);
-      
-      return res.status(200).json({
-        message: 'Phone verified successfully',
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          isseller: user.isseller,
-          companyName: user.companyName,
-          reraId: user.reraId,
-        }
-      });
-    }
+    // Generate token
+    const token = generateToken(user);
     
-    res.status(200).json({ message: 'Phone verified successfully. Please verify your email.' });
+    res.status(200).json({
+      message: 'Phone verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isseller: user.isseller,
+        companyName: user.companyName,
+        reraId: user.reraId,
+      }
+    });
   } catch (error) {
     console.error('Phone verification error:', error);
     res.status(500).json({ message: 'Server error' });
