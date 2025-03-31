@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import OtpVerificationForm from "./OtpVerificationForm";
 import GoogleAuthButton from "./GoogleAuthButton";
 import mongoAuthService from "@/services/mongoAuthService";
