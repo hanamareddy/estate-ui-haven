@@ -29,7 +29,7 @@ const SavedSearches: React.FC<SavedSearchesProps> = ({ userId }) => {
       try {
         setLoading(true);
         const response = await userAPI.getSavedSearches();
-        setSearches(response);
+        setSearches(response.data || []);
         setError(null);
       } catch (err) {
         console.error("Error fetching saved searches:", err);

@@ -7,15 +7,15 @@ import mongoAuthService from '@/services/mongoAuthService';
 export interface PropertyInquiry {
   id: string;
   propertyId: string;
-  property_title?: string;
-  property_address?: string;
-  property_price?: number;
-  property_image?: string;
+  propertyTitle?: string;
+  propertyAddress?: string;
+  propertyPrice?: number;
+  propertyImage?: string;
   message: string;
-  seller_response: string | null;
+  sellerResponse: string | null;
   status: "new" | "responded" | "closed";
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   buyerInfo?: {
     name: string;
     email: string;
