@@ -1,5 +1,5 @@
 
-// Re-export from the hooks directory
-import { useToast, toast } from "@radix-ui/react-toast";
+// This file re-exports toast functionality from our custom hooks implementation
+import { useToast, toast } from "@/hooks/use-toast";
 
 export { useToast, toast };
