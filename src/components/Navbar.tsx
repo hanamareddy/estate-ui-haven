@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard } from "lucide-react";
@@ -7,80 +8,31 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ActionButton from "./ActionButton";
-import { supabase } from "@/integrations/supabase/client";
+import mongoAuthService from "@/services/mongoAuthService";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for user in localStorage first for immediate UI update
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setUserProfile(parsedUser.profile);
-      } catch (error) {
-        console.error("Error parsing user from localStorage:", error);
-      }
+    // Check for authenticated user
+    const currentUser = mongoAuthService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
-
-    // Then verify with Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          // Get user profile from the database
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          setUser(session.user);
-          setUserProfile(profileData);
-          
-          // Update localStorage
-          localStorage.setItem('user', JSON.stringify({
-            ...session.user,
-            profile: profileData
-          }));
-        } else {
-          setUser(null);
-          setUserProfile(null);
-          localStorage.removeItem('user');
-        }
-      }
-    );
-
-    return () => {
-      subscription?.unsubscribe();
-    };
   }, []);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
+    mongoAuthService.signOut();
+    setUser(null);
     
-    if (error) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      setUser(null);
-      setUserProfile(null);
-      localStorage.removeItem('user');
-      
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully",
-      });
-      
-      navigate("/");
-    }
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+    
+    navigate("/");
   };
 
   const handleProfileClick = () => {
@@ -88,7 +40,7 @@ const Navbar = () => {
   };
 
   const handleDashboardClick = () => {
-    if (userProfile?.isseller) {
+    if (user?.isseller) {
       navigate("/seller/dashboard");
     } else {
       navigate("/buyer/dashboard");
@@ -143,7 +95,7 @@ const Navbar = () => {
           >
             Properties
           </Link>
-          {userProfile?.isseller && (
+          {user?.isseller && (
             <Link
               to="/seller/dashboard"
               className="text-sm font-medium transition-colors hover:text-accent"
@@ -160,15 +112,15 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.user_metadata?.avatar_url} />
-                      <AvatarFallback>{getInitials(userProfile?.name || user.email)}</AvatarFallback>
+                      <AvatarImage src={user.profilePicture} />
+                      <AvatarFallback>{getInitials(user.name || user.email)}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{userProfile?.name || user.email}</p>
+                      <p className="font-medium">{user.name || user.email}</p>
                       <p className="w-[200px] truncate text-sm text-muted-foreground">
                         {user.email}
                       </p>
@@ -212,11 +164,11 @@ const Navbar = () => {
               {user && (
                 <div className="flex items-center space-x-4 mb-6">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.user_metadata?.avatar_url} />
-                    <AvatarFallback>{getInitials(userProfile?.name || user.email)}</AvatarFallback>
+                    <AvatarImage src={user.profilePicture} />
+                    <AvatarFallback>{getInitials(user.name || user.email)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium">{userProfile?.name || user.email}</p>
+                    <p className="text-sm font-medium">{user.name || user.email}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
@@ -248,7 +200,7 @@ const Navbar = () => {
               >
                 Properties
               </Link>
-              {userProfile?.isseller && (
+              {user?.isseller && (
                 <Link
                   to="/seller/dashboard"
                   onClick={() => setIsOpen(false)}

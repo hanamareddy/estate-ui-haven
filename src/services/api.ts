@@ -1,122 +1,88 @@
 
 import axios from 'axios';
+import mongoAuthService from './mongoAuthService';
 
-const BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance with base configuration
-const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+// Create an axios instance
+const api = axios.create({
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to include token in requests
-axiosInstance.interceptors.request.use(
+// Add a request interceptor to include auth token
+api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = mongoAuthService.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor to handle common errors
-axiosInstance.interceptors.response.use(
-  (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_profile');
-      
-      // Only redirect to login if not already on auth page
-      if (!window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
-      }
-    }
     return Promise.reject(error);
   }
 );
 
-// API service with specific endpoint handlers
-export const api = {
-  // Auth related endpoints
-  auth: {
-    register: (userData) => axiosInstance.post('/auth/register', userData),
-    login: (email, password) => axiosInstance.post('/auth/login', { email, password }),
-    verifyPhoneOtp: (email, otp) => axiosInstance.post('/auth/verify-phone-otp', { email, otp }),
-    resendPhoneOtp: (email) => axiosInstance.post('/auth/resend-phone-otp', { email }),
-    verifyEmail: (token) => axiosInstance.get(`/auth/verify-email/${token}`),
-    resendEmailVerification: (email) => axiosInstance.post('/auth/resend-email-verification', { email }),
-    forgotPassword: (email) => axiosInstance.post('/auth/forgot-password', { email }),
-    resetPassword: (token, password) => axiosInstance.post('/auth/reset-password', { token, password }),
-    googleSignIn: (credential) => axiosInstance.post('/auth/google', { credential }),
-  },
-  
-  // User/profile related endpoints
-  user: {
-    getProfile: () => axiosInstance.get('/user/profile'),
-    updateProfile: (profileData) => axiosInstance.put('/user/profile', profileData),
-    updatePassword: (data) => axiosInstance.put('/user/password', data),
-  },
-  
-  // Property related endpoints
-  property: {
-    getAllProperties: (filters) => axiosInstance.get('/properties', { params: filters }),
-    getPropertyById: (id) => axiosInstance.get(`/properties/${id}`),
-    createProperty: (propertyData) => axiosInstance.post('/properties', propertyData),
-    updateProperty: (id, propertyData) => axiosInstance.put(`/properties/${id}`, propertyData),
-    deleteProperty: (id) => axiosInstance.delete(`/properties/${id}`),
-    getSellerProperties: () => axiosInstance.get('/properties/seller'),
-    getNearbyProperties: (lat, lng, radius) => 
-      axiosInstance.get('/properties/nearby', { params: { lat, lng, radius } }),
-  },
-  
-  // Favorites related endpoints
-  favorites: {
-    getFavorites: () => axiosInstance.get('/favorites'),
-    addFavorite: (propertyId) => axiosInstance.post('/favorites', { propertyId }),
-    removeFavorite: (propertyId) => axiosInstance.delete(`/favorites/${propertyId}`),
-  },
-  
-  // Property inquiries related endpoints
-  inquiries: {
-    createInquiry: (propertyId, inquiryData) => 
-      axiosInstance.post(`/inquiries/${propertyId}`, inquiryData),
-    getUserInquiries: () => axiosInstance.get('/inquiries/user'),
-    getSellerInquiries: () => axiosInstance.get('/inquiries/seller'),
-    updateInquiryStatus: (inquiryId, status) => 
-      axiosInstance.put(`/inquiries/${inquiryId}/status`, { status }),
-    respondToInquiry: (inquiryId, message) => 
-      axiosInstance.post(`/inquiries/${inquiryId}/response`, { message }),
-  },
-  
-  // Notifications related endpoints
-  notifications: {
-    getNotifications: () => axiosInstance.get('/notifications'),
-    markAsRead: (notificationId) => 
-      axiosInstance.put(`/notifications/${notificationId}/read`),
-    markAllAsRead: () => axiosInstance.put('/notifications/read-all'),
-    deleteNotification: (notificationId) => 
-      axiosInstance.delete(`/notifications/${notificationId}`),
-  },
-  
-  // Upload related endpoints
-  upload: {
-    uploadImage: (formData) => 
-      axiosInstance.post('/upload/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }),
-    uploadMultipleImages: (formData) => 
-      axiosInstance.post('/upload/images', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }),
-    deleteImage: (publicId) => axiosInstance.delete(`/upload/image/${publicId}`),
-  }
+// API endpoints for Auth
+const auth = {
+  register: (userData) => api.post('/auth/register', userData),
+  login: (email, password) => api.post('/auth/login', { email, password }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
+  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
+  resendEmailVerification: (email) => api.post('/auth/resend-verification', { email }),
+  googleSignIn: (credential) => api.post('/auth/google', { credential }),
+  verifyPhoneOtp: (email, otp) => api.post('/auth/verify-phone', { email, otp }),
+  resendPhoneOtp: (email) => api.post('/auth/resend-phone-otp', { email }),
 };
 
-// Direct axios instance for any custom API calls
-export default axiosInstance;
+// API endpoints for User
+const user = {
+  getProfile: () => api.get('/user/profile'),
+  updateProfile: (data) => api.put('/user/profile', data),
+  getNotifications: () => api.get('/user/notifications'),
+  markNotificationRead: (id) => api.put(`/user/notifications/${id}/read`),
+  markAllNotificationsRead: () => api.put('/user/notifications/read-all'),
+  getFavorites: () => api.get('/user/favorites'),
+  addToFavorites: (propertyId) => api.post(`/user/favorites/${propertyId}`),
+  removeFromFavorites: (propertyId) => api.delete(`/user/favorites/${propertyId}`),
+  checkFavorite: (propertyId) => api.get(`/user/favorites/check/${propertyId}`),
+  getSavedSearches: () => api.get('/user/saved-searches'),
+  createSavedSearch: (searchData) => api.post('/user/saved-searches', searchData),
+  updateSavedSearch: (id, searchData) => api.put(`/user/saved-searches/${id}`, searchData),
+  deleteSavedSearch: (id) => api.delete(`/user/saved-searches/${id}`),
+  toggleSearchNotifications: (id, enabled) => 
+    api.put(`/user/saved-searches/${id}/notifications`, { enabled }),
+};
+
+// API endpoints for Properties
+const propertyAPI = {
+  getProperties: (filters) => api.get('/properties', { params: filters }),
+  getProperty: (id) => api.get(`/properties/${id}`),
+  createProperty: (propertyData) => api.post('/properties', propertyData),
+  updateProperty: (id, propertyData) => api.put(`/properties/${id}`, propertyData),
+  deleteProperty: (id) => api.delete(`/properties/${id}`),
+  getSellerProperties: () => api.get('/properties/seller'),
+};
+
+// API endpoints for Inquiries
+const inquiries = {
+  createInquiry: (inquiryData) => api.post('/inquiries', inquiryData),
+  getUserInquiries: () => api.get('/inquiries/user'),
+  getSellerInquiries: () => api.get('/inquiries/seller'),
+  respondToInquiry: (id, response) => api.post(`/inquiries/${id}/respond`, { response }),
+};
+
+// Export all API services
+export {
+  api,
+  auth,
+  user as userAPI,
+  propertyAPI,
+  inquiries,
+};
+
+export default api;

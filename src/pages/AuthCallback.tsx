@@ -1,44 +1,21 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import mongoAuthService from '@/services/mongoAuthService';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      // Check if user is authenticated via token
+      const user = mongoAuthService.getCurrentUser();
       
-      if (error) {
-        console.error('Error during auth callback:', error);
-        navigate('/auth');
-        return;
-      }
-      
-      if (data?.session) {
-        // Get user profile
-        try {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.session.user.id)
-            .single();
-
-          // Store user data in localStorage
-          localStorage.setItem('user', JSON.stringify({
-            ...data.session.user,
-            profile: profileData
-          }));
-          
-          // Redirect based on user role
-          if (profileData?.isseller) {
-            navigate('/seller/dashboard');
-          } else {
-            navigate('/');
-          }
-        } catch (profileError) {
-          console.error('Error fetching profile:', profileError);
+      if (user) {
+        // Redirect based on user role
+        if (user.isseller) {
+          navigate('/seller/dashboard');
+        } else {
           navigate('/');
         }
       } else {
