@@ -13,7 +13,10 @@ export const useAuthAPI = () => {
   const useVerifyAuth = () => {
     return useQuery({
       queryKey: ['authUser'],
-      queryFn: () => authAPI.verifyToken(),
+      queryFn: async () => {
+        const response = await authAPI.verifyToken();
+        return response.data;
+      },
       retry: false,
     });
   };

@@ -1,5 +1,4 @@
 
-import axios from 'axios';
 import { authAPI } from './api';
 
 class MongoAuthService {
@@ -28,8 +27,10 @@ class MongoAuthService {
       const response = await authAPI.register(userData);
       const { token, user } = response.data;
       
-      this.setAuthData(token, user);
-      return user;
+      if (token && user) {
+        this.setAuthData(token, user);
+      }
+      return response.data;
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -41,8 +42,10 @@ class MongoAuthService {
       const response = await authAPI.googleSignIn(credential);
       const { token, user } = response.data;
       
-      this.setAuthData(token, user);
-      return user;
+      if (token && user) {
+        this.setAuthData(token, user);
+      }
+      return response.data;
     } catch (error) {
       console.error('Google login failed:', error);
       throw error;
@@ -89,6 +92,31 @@ class MongoAuthService {
     }
   }
 
+  async verifyPhoneOtp(email: string, otp: string) {
+    try {
+      const response = await authAPI.verifyPhoneOtp(email, otp);
+      const { token, user } = response.data;
+      
+      if (token && user) {
+        this.setAuthData(token, user);
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Phone OTP verification failed:', error);
+      throw error;
+    }
+  }
+
+  async resendPhoneOtp(email: string) {
+    try {
+      const response = await authAPI.resendPhoneOtp(email);
+      return response.data;
+    } catch (error) {
+      console.error('Resend phone OTP failed:', error);
+      throw error;
+    }
+  }
+
   logout() {
     this.user = null;
     this.token = null;
@@ -112,7 +140,7 @@ class MongoAuthService {
     return this.user && this.user.isseller === true;
   }
 
-  private setAuthData(token: string, user: any) {
+  setAuthData(token: string, user: any) {
     this.token = token;
     this.user = user;
     

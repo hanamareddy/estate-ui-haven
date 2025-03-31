@@ -2,71 +2,87 @@
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFavorites } from '@/hooks/useFavorites';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import useFavorites from '@/hooks/useFavorites';
+import mongoAuthService from '@/services/mongoAuthService';
+import { useNavigate } from 'react-router-dom';
 
 interface FavoriteButtonProps {
   propertyId: string;
-  variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
+  size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  variant?: 'default' | 'outline' | 'ghost';
 }
 
-const FavoriteButton = ({ propertyId, variant = "ghost", size = "sm", showText = false }: FavoriteButtonProps) => {
+const FavoriteButton: React.FC<FavoriteButtonProps> = ({ 
+  propertyId, 
+  size = 'md', 
+  showText = false,
+  variant = 'default'
+}) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { addFavorite, removeFavorite, checkIsFavorite } = useFavorites();
+  const { addToFavorites, removeFromFavorites, checkIsFavorite } = useFavorites();
+  const navigate = useNavigate();
 
+  // Get icon size based on button size
+  const getIconSize = () => {
+    switch (size) {
+      case 'sm': return 16;
+      case 'lg': return 24;
+      default: return 20;
+    }
+  };
+
+  // Get CSS classes based on button size
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'sm': return showText ? 'h-8 px-3' : 'h-8 w-8';
+      case 'lg': return showText ? 'h-12 px-5' : 'h-12 w-12';
+      default: return showText ? 'h-10 px-4' : 'h-10 w-10';
+    }
+  };
+
+  // Check if property is in favorites
   useEffect(() => {
-    const checkAuthAndFavorite = async () => {
-      // Check if user is authenticated
-      const { data: session } = await supabase.auth.getSession();
-      const isAuth = !!session?.session;
-      setIsAuthenticated(isAuth);
+    const checkFavoriteStatus = async () => {
+      if (!mongoAuthService.isAuthenticated()) return;
       
-      if (isAuth) {
-        // Check if property is in favorites
-        const isFav = await checkIsFavorite(propertyId);
-        setIsFavorite(isFav);
+      try {
+        const favorite = await checkIsFavorite(propertyId);
+        setIsFavorite(favorite);
+      } catch (error) {
+        console.error('Error checking favorite status:', error);
       }
     };
     
-    checkAuthAndFavorite();
+    checkFavoriteStatus();
   }, [propertyId, checkIsFavorite]);
 
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isAuthenticated) {
+  // Toggle favorite status
+  const toggleFavorite = async () => {
+    // If not authenticated, redirect to login
+    if (!mongoAuthService.isAuthenticated()) {
       toast({
         title: "Authentication Required",
         description: "Please log in to save properties to favorites",
-        variant: "destructive",
       });
+      navigate('/auth');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      let success;
-      
       if (isFavorite) {
-        success = await removeFavorite(propertyId);
-        if (success) {
-          setIsFavorite(false);
-        }
+        await removeFromFavorites(propertyId);
+        setIsFavorite(false);
       } else {
-        success = await addFavorite(propertyId);
-        if (success) {
-          setIsFavorite(true);
-        }
+        await addToFavorites(propertyId);
+        setIsFavorite(true);
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error('Error toggling favorite status:', error);
     } finally {
       setIsLoading(false);
     }
@@ -75,13 +91,18 @@ const FavoriteButton = ({ propertyId, variant = "ghost", size = "sm", showText =
   return (
     <Button
       variant={variant}
-      size={size}
-      className={`${isFavorite ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'}`}
-      onClick={handleToggleFavorite}
+      size={showText ? 'default' : 'icon'}
+      className={`${getSizeClasses()} ${isFavorite ? 'text-red-500 hover:text-red-600' : ''}`}
+      onClick={toggleFavorite}
       disabled={isLoading}
     >
-      <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''} ${showText ? 'mr-2' : ''}`} />
-      {showText && (isFavorite ? 'Saved' : 'Save')}
+      <Heart 
+        size={getIconSize()} 
+        className={isFavorite ? 'fill-current' : ''}
+      />
+      {showText && <span className="ml-2">
+        {isFavorite ? 'Saved' : 'Save'}
+      </span>}
     </Button>
   );
 };

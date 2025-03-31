@@ -60,7 +60,7 @@ const SignupForm = () => {
       // Format phone number if needed
       const formattedPhone = signupForm.phone.startsWith('+') ? signupForm.phone : `+${signupForm.phone}`;
       
-      const response = await mongoAuthService.registerUser({
+      const response = await mongoAuthService.register({
         ...signupForm,
         phone: formattedPhone
       });

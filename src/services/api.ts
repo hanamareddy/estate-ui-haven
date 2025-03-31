@@ -42,22 +42,22 @@ const authAPI = {
 
 // API endpoints for User
 const userAPI = {
-  getProfile: () => api.get('/user/profile'),
-  updateProfile: (data: any) => api.put('/user/profile', data),
-  getNotifications: () => api.get('/user/notifications'),
-  markNotificationRead: (id: string) => api.put(`/user/notifications/${id}/read`),
-  markAllNotificationsRead: () => api.put('/user/notifications/read-all'),
-  getFavorites: () => api.get('/user/favorites'),
-  addToFavorites: (propertyId: string) => api.post(`/user/favorites/${propertyId}`),
-  removeFromFavorites: (propertyId: string) => api.delete(`/user/favorites/${propertyId}`),
-  checkFavorite: (propertyId: string) => api.get(`/user/favorites/check/${propertyId}`),
-  getSavedSearches: () => api.get('/user/saved-searches'),
-  createSavedSearch: (searchData: any) => api.post('/user/saved-searches', searchData),
-  updateSavedSearch: (id: string, searchData: any) => api.put(`/user/saved-searches/${id}`, searchData),
-  deleteSavedSearch: (id: string) => api.delete(`/user/saved-searches/${id}`),
+  getProfile: () => api.get('/users/profile'),
+  updateProfile: (data: any) => api.put('/users/profile', data),
+  getNotifications: () => api.get('/users/notifications'),
+  markNotificationRead: (id: string) => api.put(`/users/notifications/${id}/read`),
+  markAllNotificationsRead: () => api.put('/users/notifications/read-all'),
+  getFavorites: () => api.get('/users/favorites'),
+  addToFavorites: (propertyId: string) => api.post(`/users/favorites/${propertyId}`),
+  removeFromFavorites: (propertyId: string) => api.delete(`/users/favorites/${propertyId}`),
+  checkFavorite: (propertyId: string) => api.get(`/users/favorites/check/${propertyId}`),
+  getSavedSearches: () => api.get('/users/saved-searches'),
+  createSavedSearch: (searchData: any) => api.post('/users/saved-searches', searchData),
+  updateSavedSearch: (id: string, searchData: any) => api.put(`/users/saved-searches/${id}`, searchData),
+  deleteSavedSearch: (id: string) => api.delete(`/users/saved-searches/${id}`),
   toggleSearchNotifications: (id: string, enabled: boolean) => 
-    api.put(`/user/saved-searches/${id}/notifications`, { enabled }),
-  deleteSearch: (id: string) => api.delete(`/user/saved-searches/${id}`),
+    api.put(`/users/saved-searches/${id}/notifications`, { enabled }),
+  deleteSearch: (id: string) => api.delete(`/users/saved-searches/${id}`),
 };
 
 // API endpoints for Properties
@@ -67,7 +67,7 @@ const propertyAPI = {
   createProperty: (propertyData: any) => api.post('/properties', propertyData),
   updateProperty: (id: string, propertyData: any) => api.put(`/properties/${id}`, propertyData),
   deleteProperty: (id: string) => api.delete(`/properties/${id}`),
-  getSellerProperties: () => api.get('/properties/seller'),
+  getSellerProperties: () => api.get('/properties/myseller/properties'),
 };
 
 // API endpoints for Inquiries

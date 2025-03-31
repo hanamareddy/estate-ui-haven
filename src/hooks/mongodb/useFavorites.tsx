@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { userAPI } from '@/services/api';
+import mongoAuthService from '@/services/mongoAuthService';
 import { Property } from '@/types/databaseModels';
 
 export const useFavorites = () => {
@@ -14,9 +15,15 @@ export const useFavorites = () => {
       setLoading(true);
       setError(null);
       
+      if (!mongoAuthService.isAuthenticated()) {
+        setFavorites([]);
+        setLoading(false);
+        return;
+      }
+      
       // Get favorites from API
-      const favoriteProperties = await userAPI.getFavorites();
-      setFavorites(favoriteProperties);
+      const response = await userAPI.getFavorites();
+      setFavorites(response.data || []);
     } catch (error) {
       console.error('Error fetching favorites:', error);
       setError('Failed to load your favorite properties');
@@ -27,20 +34,16 @@ export const useFavorites = () => {
 
   const addFavorite = async (propertyId: string) => {
     try {
-      const result = await userAPI.addToFavorites(propertyId);
+      await userAPI.addToFavorites(propertyId);
       
-      if (result) {
-        toast({
-          title: 'Success',
-          description: 'Property added to favorites',
-        });
-        
-        // Refresh favorites
-        fetchFavorites();
-        return true;
-      } else {
-        throw new Error('Failed to add to favorites');
-      }
+      toast({
+        title: 'Success',
+        description: 'Property added to favorites',
+      });
+      
+      // Refresh favorites
+      fetchFavorites();
+      return true;
     } catch (error) {
       console.error('Error adding favorite:', error);
       toast({
@@ -54,23 +57,19 @@ export const useFavorites = () => {
 
   const removeFavorite = async (propertyId: string) => {
     try {
-      const result = await userAPI.removeFromFavorites(propertyId);
+      await userAPI.removeFromFavorites(propertyId);
       
-      if (result) {
-        toast({
-          title: 'Success',
-          description: 'Property removed from favorites',
-        });
-        
-        // Update local state
-        setFavorites(currentFavorites => 
-          currentFavorites.filter(property => property.id !== propertyId)
-        );
-        
-        return true;
-      } else {
-        throw new Error('Failed to remove from favorites');
-      }
+      toast({
+        title: 'Success',
+        description: 'Property removed from favorites',
+      });
+      
+      // Update local state
+      setFavorites(currentFavorites => 
+        currentFavorites.filter(property => property.id !== propertyId)
+      );
+      
+      return true;
     } catch (error) {
       console.error('Error removing favorite:', error);
       toast({
@@ -84,7 +83,12 @@ export const useFavorites = () => {
 
   const checkIsFavorite = async (propertyId: string) => {
     try {
-      return await userAPI.checkIsFavorite(propertyId);
+      if (!mongoAuthService.isAuthenticated()) {
+        return false;
+      }
+      
+      const response = await userAPI.checkFavorite(propertyId);
+      return response.data?.isFavorite || false;
     } catch (error) {
       console.error('Error checking favorite status:', error);
       return false;

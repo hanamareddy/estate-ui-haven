@@ -1,18 +1,17 @@
 
 import { authAPI } from './api';
+import mongoAuthService from './mongoAuthService';
 
 export async function signInWithGoogle(token: string) {
   try {
     const response = await authAPI.googleSignIn(token);
     
-    // Store user in session
-    localStorage.setItem('user_session', JSON.stringify({
-      user: response.user,
-      token: response.token,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-    }));
+    if (response.data.token && response.data.user) {
+      // Store user session using mongoAuthService
+      mongoAuthService.setAuthData(response.data.token, response.data.user);
+    }
     
-    return response;
+    return response.data;
   } catch (error) {
     console.error("Error signing in with Google:", error);
     throw error;
@@ -20,36 +19,33 @@ export async function signInWithGoogle(token: string) {
 }
 
 export async function signOut() {
-  authAPI.signOut();
-  localStorage.removeItem('user_session');
+  mongoAuthService.logout();
 }
 
 export async function getSession() {
-  const sessionStr = localStorage.getItem('user_session');
-  if (!sessionStr) return null;
-  
-  try {
-    const session = JSON.parse(sessionStr);
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      localStorage.removeItem('user_session');
-      return null;
-    }
-    return session;
-  } catch (error) {
-    localStorage.removeItem('user_session');
-    return null;
+  if (mongoAuthService.isAuthenticated()) {
+    return {
+      user: mongoAuthService.getCurrentUser(),
+      token: mongoAuthService.getToken(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+    };
   }
+  return null;
 }
 
 export async function getCurrentUser() {
-  // First try to get from session
-  const session = await getSession();
-  if (session?.user) return session.user;
+  // First try to get from mongoAuthService
+  const user = mongoAuthService.getCurrentUser();
+  if (user) return user;
   
-  // If no session, try to verify token with API
+  // If no user in service, try to verify token with API
   try {
-    return await authAPI.verifyToken();
+    const response = await authAPI.verifyToken();
+    const userData = response.data;
+    if (userData) {
+      mongoAuthService.setAuthData(mongoAuthService.getToken() || '', userData);
+    }
+    return userData;
   } catch (error) {
     return null;
   }

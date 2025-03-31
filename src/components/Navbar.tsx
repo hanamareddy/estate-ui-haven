@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard } from "lucide-react";
@@ -24,7 +23,7 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
-    mongoAuthService.signOut();
+    mongoAuthService.logout();
     setUser(null);
     
     toast({

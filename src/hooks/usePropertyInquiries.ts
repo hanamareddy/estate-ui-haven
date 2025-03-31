@@ -1,120 +1,90 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from '@/components/ui/use-toast';
 import { inquiryAPI } from '@/services/api';
 import mongoAuthService from '@/services/mongoAuthService';
-import { toast } from '@/components/ui/use-toast';
 
 export interface PropertyInquiry {
   id: string;
-  property_id: string;
+  propertyId: string;
   property_title?: string;
+  property_address?: string;
+  property_price?: number;
   property_image?: string;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  user_phone?: string;
   message: string;
-  status: 'new' | 'responded' | 'closed';
-  seller_response?: string;
+  seller_response: string | null;
+  status: "new" | "responded" | "closed";
   created_at: string;
   updated_at: string;
-}
-
-export interface UsePropertyInquiriesResult {
-  inquiries: PropertyInquiry[];
-  loading: boolean;
-  error: string | null;
-  refreshUserInquiries: () => Promise<void>;
-  refreshSellerInquiries: () => Promise<void>;
-  respondToInquiry: (inquiryId: string, response: string) => Promise<boolean>;
-  createInquiry: (propertyId: string, message: string, contactDetails?: {
+  buyerInfo?: {
     name: string;
     email: string;
-    phone?: string;
-  }) => Promise<boolean>;
+    phone: string;
+  };
 }
 
-export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
-  const [inquiriesList, setInquiriesList] = useState<PropertyInquiry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+export const usePropertyInquiries = () => {
+  const [inquiries, setInquiries] = useState<PropertyInquiry[]>([]);
+  const [sellerInquiries, setSellerInquiries] = useState<PropertyInquiry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshUserInquiries = useCallback(async () => {
-    // Skip if not authenticated
-    if (!mongoAuthService.isAuthenticated()) {
-      setInquiriesList([]);
-      setLoading(false);
-      return;
-    }
-    
+  const fetchUserInquiries = async () => {
     try {
       setLoading(true);
-      const response = await inquiryAPI.getUserInquiries();
-      setInquiriesList(response.data);
       setError(null);
-    } catch (err) {
-      console.error('Error fetching user inquiries:', err);
+      
+      // Check if user is authenticated
+      if (!mongoAuthService.isAuthenticated()) {
+        setInquiries([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch inquiries from backend API
+      const response = await inquiryAPI.getUserInquiries();
+      setInquiries(response.data || []);
+    } catch (error) {
+      console.error('Error fetching property inquiries:', error);
       setError('Failed to load your property inquiries');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const refreshSellerInquiries = useCallback(async () => {
-    // Skip if not authenticated or not a seller
-    const user = mongoAuthService.getCurrentUser();
-    if (!user || !user.isseller) {
-      setInquiriesList([]);
-      setLoading(false);
-      return;
-    }
-    
+  const fetchSellerInquiries = async () => {
     try {
       setLoading(true);
-      const response = await inquiryAPI.getSellerInquiries();
-      setInquiriesList(response.data);
       setError(null);
-    } catch (err) {
-      console.error('Error fetching seller inquiries:', err);
-      setError('Failed to load inquiries for your properties');
+      
+      // Check if user is authenticated and is a seller
+      if (!mongoAuthService.isAuthenticated() || !mongoAuthService.isSeller()) {
+        setSellerInquiries([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch seller inquiries from backend API
+      const response = await inquiryAPI.getSellerInquiries();
+      setSellerInquiries(response.data || []);
+    } catch (error) {
+      console.error('Error fetching seller inquiries:', error);
+      setError('Failed to load property inquiries');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const respondToInquiry = useCallback(async (inquiryId: string, response: string): Promise<boolean> => {
-    try {
-      await inquiryAPI.respondToInquiry(inquiryId, response);
-      
-      // Update local state
-      setInquiriesList(prev => prev.map(inquiry => 
-        inquiry.id === inquiryId 
-          ? { ...inquiry, status: 'responded', seller_response: response } 
-          : inquiry
-      ));
-      
-      return true;
-    } catch (err) {
-      console.error('Error responding to inquiry:', err);
-      setError('Failed to send your response');
-      return false;
-    }
-  }, []);
-
-  const createInquiry = useCallback(async (
-    propertyId: string, 
-    message: string, 
-    contactDetails?: {
-      name: string;
-      email: string;
-      phone?: string;
-    }
-  ): Promise<boolean> => {
+  const createInquiry = async (propertyId: string, message: string, contactDetails?: {
+    name: string;
+    email: string;
+    phone?: string;
+  }) => {
     try {
       // Check if user is authenticated
-      const token = mongoAuthService.getToken();
+      const isAuthenticated = mongoAuthService.isAuthenticated();
       
-      if (!token && (!contactDetails?.name || !contactDetails?.email)) {
+      if (!isAuthenticated && (!contactDetails?.name || !contactDetails?.email)) {
         toast({
           title: 'Authentication Required',
           description: 'Please log in to contact property owners or provide your contact details',
@@ -124,7 +94,7 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
       }
       
       // Create inquiry with API
-      await inquiryAPI.createInquiry(propertyId, message, !token ? contactDetails : undefined);
+      await inquiryAPI.createInquiry(propertyId, message, !isAuthenticated ? contactDetails : undefined);
       
       toast({
         title: 'Inquiry Sent',
@@ -132,8 +102,8 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
       });
       
       // Refresh inquiries if user is logged in
-      if (token) {
-        refreshUserInquiries();
+      if (isAuthenticated) {
+        fetchUserInquiries();
       }
       
       return true;
@@ -146,30 +116,51 @@ export const usePropertyInquiries = (): UsePropertyInquiriesResult => {
       });
       return false;
     }
-  }, [refreshUserInquiries]);
+  };
 
-  // On mount, check if user is a seller and load appropriate inquiries
-  useEffect(() => {
-    const user = mongoAuthService.getCurrentUser();
-    if (user) {
-      if (user.isseller) {
-        refreshSellerInquiries();
-      } else {
-        refreshUserInquiries();
-      }
-    } else {
-      setLoading(false);
+  const respondToInquiry = async (inquiryId: string, response: string) => {
+    try {
+      await inquiryAPI.respondToInquiry(inquiryId, response);
+      
+      toast({
+        title: 'Response Sent',
+        description: 'Your response has been sent to the interested buyer',
+      });
+      
+      // Refresh seller inquiries
+      fetchSellerInquiries();
+      
+      return true;
+    } catch (error) {
+      console.error('Error responding to inquiry:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send your response. Please try again',
+        variant: 'destructive',
+      });
+      return false;
     }
-  }, [refreshSellerInquiries, refreshUserInquiries]);
+  };
+
+  useEffect(() => {
+    // Only fetch inquiries if there's an auth token
+    if (mongoAuthService.isAuthenticated()) {
+      fetchUserInquiries();
+      if (mongoAuthService.isSeller()) {
+        fetchSellerInquiries();
+      }
+    }
+  }, []);
 
   return {
-    inquiries: inquiriesList,
+    inquiries,
+    sellerInquiries,
     loading,
     error,
-    refreshUserInquiries,
-    refreshSellerInquiries,
+    createInquiry,
     respondToInquiry,
-    createInquiry
+    refreshUserInquiries: fetchUserInquiries,
+    refreshSellerInquiries: fetchSellerInquiries
   };
 };
 

@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, Phone } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +61,7 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
-      const response = await mongoAuthService.loginWithEmailPassword(loginForm.email, loginForm.password);
+      const response = await mongoAuthService.login(loginForm.email, loginForm.password);
       
       // Login successful
       toast({
@@ -70,7 +70,7 @@ const LoginForm = () => {
       });
       
       // Redirect based on user role
-      if (response.user.isseller) {
+      if (response.isseller) {
         navigate('/seller/dashboard');
       } else {
         navigate('/');

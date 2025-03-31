@@ -2,15 +2,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userAPI } from '@/services/api';
 import { toast } from '@/components/ui/use-toast';
+import mongoAuthService from '@/services/mongoAuthService';
 
 export const useUserAPI = () => {
   const queryClient = useQueryClient();
   
-  // Get current user profile
-  const useProfile = () => {
+  // Get user profile
+  const useGetProfile = () => {
     return useQuery({
       queryKey: ['userProfile'],
-      queryFn: () => userAPI.getProfile(),
+      queryFn: async () => {
+        const response = await userAPI.getProfile();
+        return response.data;
+      },
+      enabled: mongoAuthService.isAuthenticated(),
     });
   };
   
@@ -18,28 +23,77 @@ export const useUserAPI = () => {
   const useUpdateProfile = () => {
     return useMutation({
       mutationFn: (profileData: any) => userAPI.updateProfile(profileData),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      onSuccess: (response) => {
+        queryClient.setQueryData(['userProfile'], response.data);
+        
+        // Also update the user in auth service
+        const currentUser = mongoAuthService.getCurrentUser();
+        if (currentUser) {
+          const updatedUser = { ...currentUser, ...response.data };
+          mongoAuthService.setAuthData(mongoAuthService.getToken() || '', updatedUser);
+        }
+        
         toast({
           title: "Profile Updated",
-          description: "Your profile has been updated successfully!",
+          description: "Your profile has been updated successfully",
         });
       },
       onError: (error: any) => {
         toast({
-          title: "Error Updating Profile",
-          description: error.response?.data?.message || "An error occurred while updating your profile",
+          title: "Update Failed",
+          description: error.response?.data?.message || "Failed to update profile",
           variant: "destructive"
         });
       }
     });
   };
   
-  // Get user's favorite properties
-  const useFavorites = () => {
+  // Get user notifications
+  const useGetNotifications = () => {
     return useQuery({
-      queryKey: ['favorites'],
-      queryFn: () => userAPI.getFavorites(),
+      queryKey: ['userNotifications'],
+      queryFn: async () => {
+        const response = await userAPI.getNotifications();
+        return response.data;
+      },
+      enabled: mongoAuthService.isAuthenticated(),
+    });
+  };
+  
+  // Mark notification as read
+  const useMarkNotificationRead = () => {
+    return useMutation({
+      mutationFn: (notificationId: string) => userAPI.markNotificationRead(notificationId),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+      }
+    });
+  };
+  
+  // Mark all notifications as read
+  const useMarkAllNotificationsRead = () => {
+    return useMutation({
+      mutationFn: () => userAPI.markAllNotificationsRead(),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+        
+        toast({
+          title: "Notifications Cleared",
+          description: "All notifications marked as read",
+        });
+      }
+    });
+  };
+  
+  // Get user's favorite properties
+  const useGetFavorites = () => {
+    return useQuery({
+      queryKey: ['userFavorites'],
+      queryFn: async () => {
+        const response = await userAPI.getFavorites();
+        return response.data;
+      },
+      enabled: mongoAuthService.isAuthenticated(),
     });
   };
   
@@ -48,18 +102,7 @@ export const useUserAPI = () => {
     return useMutation({
       mutationFn: (propertyId: string) => userAPI.addToFavorites(propertyId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favorites'] });
-        toast({
-          title: "Added to Favorites",
-          description: "Property has been added to your favorites!",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error Adding to Favorites",
-          description: error.response?.data?.message || "An error occurred while adding to favorites",
-          variant: "destructive"
-        });
+        queryClient.invalidateQueries({ queryKey: ['userFavorites'] });
       }
     });
   };
@@ -69,38 +112,33 @@ export const useUserAPI = () => {
     return useMutation({
       mutationFn: (propertyId: string) => userAPI.removeFromFavorites(propertyId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favorites'] });
-        toast({
-          title: "Removed from Favorites",
-          description: "Property has been removed from your favorites!",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error Removing from Favorites",
-          description: error.response?.data?.message || "An error occurred while removing from favorites",
-          variant: "destructive"
-        });
+        queryClient.invalidateQueries({ queryKey: ['userFavorites'] });
       }
     });
   };
   
   // Check if property is in favorites
-  const useCheckIsFavorite = (propertyId: string) => {
+  const useCheckFavorite = (propertyId: string) => {
     return useQuery({
-      queryKey: ['isFavorite', propertyId],
-      queryFn: () => userAPI.checkIsFavorite(propertyId),
-      enabled: !!propertyId,
+      queryKey: ['favoriteCheck', propertyId],
+      queryFn: async () => {
+        const response = await userAPI.checkFavorite(propertyId);
+        return response.data?.isFavorite || false;
+      },
+      enabled: mongoAuthService.isAuthenticated() && !!propertyId,
     });
   };
   
   return {
-    useProfile,
+    useGetProfile,
     useUpdateProfile,
-    useFavorites,
+    useGetNotifications,
+    useMarkNotificationRead,
+    useMarkAllNotificationsRead,
+    useGetFavorites,
     useAddToFavorites,
     useRemoveFromFavorites,
-    useCheckIsFavorite,
+    useCheckFavorite
   };
 };
 
