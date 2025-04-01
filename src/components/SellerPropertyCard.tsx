@@ -1,3 +1,4 @@
+
 import { Eye, EyeOff, Edit, Trash2, Users, Heart } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +30,13 @@ interface SellerPropertyCardProps {
   onDelete?: (id: string) => void;
 }
 
-export const SellerPropertyCard = ({ 
+// Change from named export to default export
+export default function SellerPropertyCard({ 
   property, 
   onToggleStatus, 
   onEdit,
   onDelete 
-}: SellerPropertyCardProps) => {
+}: SellerPropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -159,4 +161,4 @@ export const SellerPropertyCard = ({
       </CardFooter>
     </Card>
   );
-};
+}
