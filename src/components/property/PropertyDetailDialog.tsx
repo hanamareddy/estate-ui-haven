@@ -56,7 +56,7 @@ const PropertyDetailDialog = ({
     }
   };
 
-  // Format status to display properly
+  // Format status to display properly with null check
   const formatStatus = (statusValue: string | undefined) => {
     if (!statusValue) return '';
     return statusValue.replace('-', ' ');

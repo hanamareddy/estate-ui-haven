@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Search, User, Bell, ChevronDown } from 'lucide-react';
+import { Menu, X, Search, User, Bell, ChevronDown, Home } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
 import NotificationCenter from './NotificationCenter';
 import { FilterSidebar } from './filters/FilterSidebar';
 import mongoAuthService from '@/services/mongoAuthService';
 import useNotifications from '@/hooks/useNotifications';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 interface NavbarProps {
   activeStatus?: string;
@@ -48,7 +50,7 @@ const Navbar = ({
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isAuthenticated = mongoAuthService.isAuthenticated();
-  const userType = isAuthenticated ? mongoAuthService.getUserType() : null;
+  const userType = isAuthenticated ? mongoAuthService.getCurrentUser()?.isseller ? 'seller' : 'buyer' : null;
   const { unreadCount = 0 } = useNotifications();
   
   useEffect(() => {
@@ -68,6 +70,18 @@ const Navbar = ({
   const closeFilters = () => {
     // Apply filters logic here
     setIsFilterOpen(false);
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    const user = mongoAuthService.getCurrentUser();
+    if (!user || !user.name) return 'U';
+    
+    const nameParts = user.name.split(' ');
+    if (nameParts.length > 1) {
+      return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+    }
+    return nameParts[0].substring(0, 2).toUpperCase();
   };
 
   return (
@@ -126,8 +140,11 @@ const Navbar = ({
                 </Sheet>
                 
                 <div className="relative group">
-                  <Button variant="ghost" size="icon">
-                    <User className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="rounded-full p-0 h-9 w-9 overflow-hidden">
+                    <Avatar>
+                      <AvatarImage src={mongoAuthService.getCurrentUser()?.avatar || ''} />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
                   </Button>
                   <div className="absolute z-50 right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-2 hidden group-hover:block">
                     <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Profile</Link>

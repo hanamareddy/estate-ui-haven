@@ -1,21 +1,16 @@
 
 import React from 'react';
-import { X } from 'lucide-react';
-import { PriceFilter } from './PriceFilter';
-import { BedroomsFilter } from './BedroomsFilter';
-import { BathroomsFilter } from './BathroomsFilter';
-import { PropertySizeFilter } from './PropertySizeFilter';
-import { YearBuiltFilter } from './YearBuiltFilter';
-import { LocationFilter } from './LocationFilter';
-import { PropertyIdFilter } from './PropertyIdFilter';
-import { PropertyStatusFilter } from './PropertyStatusFilter';
-import { AmenitiesFilter } from './AmenitiesFilter';
-import { StatusFilter } from './StatusFilter';
-import { TypeFilter } from './TypeFilter';
-import { SortOptions } from './SortOptions';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '../ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import PriceFilter from '@/components/filters/PriceFilter';
+import BedroomsFilter from '@/components/filters/BedroomsFilter';
+import BathroomsFilter from '@/components/filters/BathroomsFilter';
+import PropertySizeFilter from '@/components/filters/PropertySizeFilter';
+import AmenitiesFilter from '@/components/filters/AmenitiesFilter';
+import PropertyStatusFilter from '@/components/filters/PropertyStatusFilter';
+import PropertyTypeFilter from '@/components/filters/TypeFilter';
 
-interface FilterSidebarProps {
+export interface FilterSidebarProps {
   isFilterOpen: boolean;
   setIsFilterOpen: (isOpen: boolean) => void;
   priceRange: { min: string; max: string };
@@ -36,7 +31,7 @@ interface FilterSidebarProps {
   onTypeChange: (type: string) => void;
 }
 
-export const FilterSidebar = ({
+export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   isFilterOpen,
   setIsFilterOpen,
   priceRange,
@@ -55,48 +50,45 @@ export const FilterSidebar = ({
   activeType,
   onStatusChange,
   onTypeChange
-}: FilterSidebarProps) => {
+}) => {
   return (
     <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader className="mb-6">
-          <SheetTitle>Filters</SheetTitle>
+      <SheetContent className="overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Filter Properties</SheetTitle>
         </SheetHeader>
-        
-        <div className="overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
-          <StatusFilter activeStatus={activeStatus} onStatusChange={onStatusChange} />
-          <div className="my-4 border-t border-border"></div>
+
+        <div className="py-6 space-y-6">
+          <PropertyStatusFilter activeStatus={activeStatus} onStatusChange={onStatusChange} />
           
-          <TypeFilter activeType={activeType} onTypeChange={onTypeChange} />
-          <div className="my-4 border-t border-border"></div>
+          <PropertyTypeFilter activeType={activeType} onTypeChange={onTypeChange} />
           
-          <PriceFilter priceRange={priceRange} handlePriceChange={handlePriceChange} />
-          <BedroomsFilter bedrooms={bedrooms} setBedrooms={setBedrooms} />
-          <BathroomsFilter bathrooms={bathrooms} setBathrooms={setBathrooms} />
-          <PropertySizeFilter areaRange={areaRange} handleAreaChange={handleAreaChange} />
-          <YearBuiltFilter />
-          <LocationFilter />
-          <PropertyIdFilter />
-          <PropertyStatusFilter />
-          <AmenitiesFilter selectedAmenities={selectedAmenities} toggleAmenity={toggleAmenity} />
+          <PriceFilter 
+            min={priceRange.min} 
+            max={priceRange.max} 
+            onChange={handlePriceChange} 
+          />
+          
+          <BedroomsFilter value={bedrooms} onChange={setBedrooms} />
+          
+          <BathroomsFilter value={bathrooms} onChange={setBathrooms} />
+          
+          <PropertySizeFilter 
+            min={areaRange.min} 
+            max={areaRange.max} 
+            onChange={handleAreaChange} 
+          />
+          
+          <AmenitiesFilter 
+            selectedAmenities={selectedAmenities}
+            toggleAmenity={toggleAmenity}
+          />
         </div>
 
-        <div className="flex flex-wrap justify-between mt-8 gap-3 sticky bottom-0 bg-white pb-2 pt-4 border-t border-border">
-          <button 
-            onClick={resetFilters}
-            className="px-4 py-2 text-sm border border-border rounded-md hover:bg-secondary/50"
-          >
-            Reset All
-          </button>
-          <SheetClose asChild>
-            <button 
-              onClick={closeFilters}
-              className="px-4 py-2 text-sm bg-accent text-white rounded-md hover:bg-accent/90"
-            >
-              Apply Filters
-            </button>
-          </SheetClose>
-        </div>
+        <SheetFooter className="flex-col sm:flex-col gap-3 mt-6">
+          <Button onClick={closeFilters} className="w-full">Apply Filters</Button>
+          <Button onClick={resetFilters} variant="outline" className="w-full">Reset All</Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

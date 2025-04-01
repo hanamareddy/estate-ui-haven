@@ -1,28 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, CompassIcon } from './icons';
-import { supabase } from '@/integrations/supabase/client';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useEffect, useState } from 'react';
+import Navbar from './Navbar';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import BackToHomeButton from './BackToHomeButton';
 
 interface PriceData {
   month: string;
@@ -171,9 +153,18 @@ export const MarketTrends = () => {
     return null;
   };
 
+  const BackToHomeSection = () => (
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-3xl font-bold">Market Trends</h1>
+      <BackToHomeButton />
+    </div>
+  );
+
   return (
-    <section className="py-16 bg-secondary/20">
-      <div className="container px-4 mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
+        <BackToHomeSection />
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="flex items-center justify-center gap-2 mb-2">
             <CompassIcon className="h-6 w-6 text-accent" />
@@ -341,7 +332,7 @@ export const MarketTrends = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </section>
+    </div>
   );
 };
 
