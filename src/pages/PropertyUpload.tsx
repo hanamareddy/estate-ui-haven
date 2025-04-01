@@ -4,61 +4,21 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PropertyForm from "@/components/property/PropertyForm";
 import { toast } from "@/components/ui/use-toast";
-import { propertyAPI } from "@/services/api";
-import mongoAuthService from "@/services/mongoAuthService";
+import usePropertyAPI from "@/hooks/usePropertyAPI";
 
 const PropertyUpload = () => {
-  const navigate = useNavigate();  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Check if user is a seller
-  useEffect(() => {
-    const checkSellerStatus = async () => {
-      const currentUser = mongoAuthService.getCurrentUser();
-
-      if (!currentUser) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to list properties",
-          variant: "destructive",
-        });
-        navigate("/auth");
-      } else if (!currentUser.isseller) {
-        toast({
-          title: "Seller Account Required",
-          description: "You need a seller account to list properties",
-          variant: "destructive",
-        });
-        navigate("/");
-      }
-    };
-
-    checkSellerStatus();
-  }, [navigate]);
-
+  const navigate = useNavigate();
+  const { useCreateProperty } = usePropertyAPI();
+  const createPropertyMutation = useCreateProperty();
+  
   // Handle form submission
-  const handleSubmit = async (formData) => {
-    setIsSubmitting(true);
-
+  const handleSubmit = async (formData: any) => {
     try {
-      // Send data to the API
-      const newProperty = await propertyAPI.createProperty(formData);
-
-      toast({
-        title: "Property Added",
-        description: `Successfully added property: ${newProperty.title}`,
-      });
-
-      navigate("/seller/dashboard");
+      await createPropertyMutation.mutateAsync(formData);
+      // Navigation will be handled by the mutation's onSuccess callback
     } catch (error) {
+      // Error handling is already implemented in the mutation
       console.error("Error creating property:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add property. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -82,7 +42,7 @@ const PropertyUpload = () => {
 
       <PropertyForm 
         onSubmit={handleSubmit}
-        isLoading={isSubmitting}
+        isLoading={createPropertyMutation.isPending}
       />
     </div>
   );

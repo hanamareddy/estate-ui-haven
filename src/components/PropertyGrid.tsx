@@ -7,14 +7,23 @@ import PropertyToolbar from './properties/PropertyToolbar';
 import FeaturedProperties from './properties/FeaturedProperties';
 import AllProperties from './properties/AllProperties';
 import ScrollToTopButton from './properties/ScrollToTopButton';
-import properties from '../data/properties';
+import usePropertyAPI from '@/hooks/usePropertyAPI';
 
 const PropertyGrid = () => {
   const [activeStatus, setActiveStatus] = useState('all');
   const [activeType, setActiveType] = useState('all');
-  const [visibleProperties, setVisibleProperties] = useState(properties);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const [compareProperties, setCompareProperties] = useState<any[]>([]);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const { useProperties } = usePropertyAPI();
+  
+  // Apply filters
+  const filters = {
+    ...(activeStatus !== 'all' && { status: activeStatus }),
+    ...(activeType !== 'all' && { type: activeType })
+  };
+  
+  // Fetch properties with filters
+  const { data, isLoading, error } = useProperties(filters);
   
   // Show/hide scroll to top button based on scroll position
   useEffect(() => {
@@ -30,29 +39,13 @@ const PropertyGrid = () => {
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
   
-  // Filter properties based on active filters
-  useEffect(() => {
-    const filtered = properties.filter(property => {
-      // Status filter
-      if (activeStatus !== 'all' && property.status !== activeStatus) {
-        return false;
-      }
-      
-      // Type filter
-      if (activeType !== 'all' && property.type !== activeType) {
-        return false;
-      }
-      
-      return true;
-    });
-
-    setVisibleProperties(filtered);
-  }, [activeStatus, activeType]);
+  // Get properties from API response
+  const properties = data?.properties || [];
 
   // Handle adding/removing properties to compare
   const toggleCompare = (property: any) => {
-    if (compareProperties.some(p => p.id === property.id)) {
-      setCompareProperties(compareProperties.filter(p => p.id !== property.id));
+    if (compareProperties.some(p => p._id === property._id)) {
+      setCompareProperties(compareProperties.filter(p => p._id !== property._id));
     } else {
       if (compareProperties.length < 3) {
         setCompareProperties([...compareProperties, property]);
@@ -95,21 +88,25 @@ const PropertyGrid = () => {
         />
         
         <FeaturedProperties 
-          properties={visibleProperties}
+          properties={properties}
           compareProperties={compareProperties}
           toggleCompare={toggleCompare}
+          isLoading={isLoading}
+          error={error}
         />
         
         <AllProperties 
-          properties={visibleProperties}
+          properties={properties}
           compareProperties={compareProperties}
           toggleCompare={toggleCompare}
           resetFilters={resetFilters}
+          isLoading={isLoading}
+          error={error}
         />
         
         <PropertyCompare 
           selectedProperties={compareProperties} 
-          onRemoveProperty={(id) => setCompareProperties(compareProperties.filter(p => p.id !== id))}
+          onRemoveProperty={(id) => setCompareProperties(compareProperties.filter(p => p._id !== id))}
           onClearAll={clearAllCompare}
         />
         

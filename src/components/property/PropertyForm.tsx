@@ -25,7 +25,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
 import cloudinaryService from "@/services/cloudinaryService";
 
-// Define the form schema using zod
 const propertyFormSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   address: z.string().min(5, "Address is required"),
@@ -81,13 +80,11 @@ interface PropertyFormProps {
 }
 
 const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormProps) => {
-  // Convert legacy image strings to PropertyImage objects if needed
   const normalizeImages = (images?: PropertyImage[] | string[]): PropertyImage[] => {
     if (!images) return [];
     
     return images.map(img => {
       if (typeof img === 'string') {
-        // Legacy format, convert to new format
         return {
           url: img,
           public_id: `legacy_${Math.random().toString(36).substring(2, 15)}`
@@ -102,16 +99,15 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
   const [amenities, setAmenities] = useState<string[]>(property?.amenities || []);
   const [removedImages, setRemovedImages] = useState<string[]>([]);
 
-  // Initialize the form with default values or the property values for editing
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: property ? {
-      title: property.title,
-      address: property.address,
-      price: property.price,
-      bedrooms: property.bedrooms || 0,
-      bathrooms: property.bathrooms || 0,
-      sqft: property.sqft,
+      title: property.title || "",
+      address: property.address || "",
+      price: property.price || undefined,
+      bedrooms: property.bedrooms || undefined,
+      bathrooms: property.bathrooms || undefined,
+      sqft: property.sqft || undefined,
       type: property.type as "House" | "Apartment" | "Land" | "Villa" | "Builder Floor" | "Farmhouse" | "PG",
       status: property.status as "active" | "inactive",
       propertyStatus: (property.propertyStatus as "Ready to Move" | "Under Construction" | "Resale") || "Ready to Move",
@@ -126,10 +122,10 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     } : {
       title: "",
       address: "",
-      price: 0,
-      bedrooms: 0,
-      bathrooms: 0,
-      sqft: 0,
+      price: undefined,
+      bedrooms: undefined,
+      bathrooms: undefined,
+      sqft: undefined,
       type: "House",
       status: "active",
       propertyStatus: "Ready to Move",
@@ -144,7 +140,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     }
   });
 
-  // Handle image upload using cloudinary service
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -152,10 +147,8 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     setUploadingImage(true);
     
     try {
-      // Convert FileList to Array
       const fileArray = Array.from(files);
       
-      // Upload to Cloudinary via our API
       const uploadedImages = await cloudinaryService.uploadImages(fileArray);
       
       setImages(prev => [...prev, ...uploadedImages]);
@@ -172,7 +165,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
       });
     } finally {
       setUploadingImage(false);
-      // Reset the input
       e.target.value = '';
     }
   };
@@ -180,12 +172,10 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
   const removeImage = (index: number) => {
     const imageToRemove = images[index];
     
-    // Add to removed images list for backend processing
     if (imageToRemove.public_id && !imageToRemove.public_id.startsWith('legacy_')) {
       setRemovedImages(prev => [...prev, imageToRemove.public_id]);
     }
     
-    // Remove from current images
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -207,7 +197,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
       return;
     }
     
-    // Add the images, amenities and removed images to the form data
     onSubmit({ 
       ...values, 
       images,
@@ -216,7 +205,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     });
   };
 
-  // Indian city options based on selected state
   const getCitiesByState = (state: string) => {
     const cityMap: Record<string, string[]> = {
       'delhi': ['New Delhi', 'Delhi NCR'],
@@ -478,7 +466,14 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                     <FormControl>
                       <div className="relative">
                         <Bed className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" min="0" {...field} />
+                        <Input 
+                          className="pl-10" 
+                          type="number" 
+                          min="0" 
+                          placeholder="Number of bedrooms"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -495,7 +490,15 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                     <FormControl>
                       <div className="relative">
                         <Bath className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" min="0" step="0.5" {...field} />
+                        <Input 
+                          className="pl-10" 
+                          type="number" 
+                          min="0" 
+                          step="0.5" 
+                          placeholder="Number of bathrooms"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />

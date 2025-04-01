@@ -1,6 +1,4 @@
 
-import { authAPI } from './api';
-
 class MongoAuthService {
   private user: any | null = null;
   private token: string | null = null;
@@ -147,6 +145,11 @@ class MongoAuthService {
   isSeller() {
     return this.user && this.user.isseller === true;
   }
+  
+  getUserType() {
+    if (!this.user) return null;
+    return this.user.isseller ? 'seller' : 'buyer';
+  }
 
   setAuthData(token: string, user: any) {
     this.token = token;
@@ -193,6 +196,9 @@ class MongoAuthService {
     }
   }
 }
+
+// Import needed here to avoid circular dependencies
+import { authAPI } from './api';
 
 const mongoAuthService = new MongoAuthService();
 export default mongoAuthService;

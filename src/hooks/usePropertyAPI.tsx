@@ -1,9 +1,12 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { propertyAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const usePropertyAPI = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   // Get all properties with optional filters
   const useProperties = (filters = {}) => {
@@ -26,12 +29,14 @@ export const usePropertyAPI = () => {
   const useCreateProperty = () => {
     return useMutation({
       mutationFn: (propertyData: any) => propertyAPI.createProperty(propertyData),
-      onSuccess: () => {
+      onSuccess: (response) => {
         queryClient.invalidateQueries({ queryKey: ['properties'] });
+        queryClient.invalidateQueries({ queryKey: ['sellerProperties'] });
         toast({
           title: "Property Created",
-          description: "Your property has been created successfully!",
+          description: `Your property has been created successfully!`,
         });
+        navigate("/seller/dashboard");
       },
       onError: (error: any) => {
         toast({
@@ -51,10 +56,12 @@ export const usePropertyAPI = () => {
       onSuccess: (_, { id }) => {
         queryClient.invalidateQueries({ queryKey: ['properties'] });
         queryClient.invalidateQueries({ queryKey: ['property', id] });
+        queryClient.invalidateQueries({ queryKey: ['sellerProperties'] });
         toast({
           title: "Property Updated",
           description: "Your property has been updated successfully!",
         });
+        navigate("/seller/dashboard");
       },
       onError: (error: any) => {
         toast({
@@ -72,6 +79,7 @@ export const usePropertyAPI = () => {
       mutationFn: (id: string) => propertyAPI.deleteProperty(id),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['properties'] });
+        queryClient.invalidateQueries({ queryKey: ['sellerProperties'] });
         toast({
           title: "Property Deleted",
           description: "Your property has been deleted successfully!",
