@@ -1,8 +1,9 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Eye, EyeOff, Users, Home, Star, ClipboardList, 
-  ArrowLeft, Filter, Mail, Bell, Plus, Trash2
+  ArrowLeft, Filter, Mail, Bell, Plus, Trash2, Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,109 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "@/components/ui/use-toast";
-
-const MOCK_PROPERTIES = [
-  {
-    id: "prop001",
-    title: "Modern Family Home",
-    address: "123 Main St, Boston, MA",
-    price: 450000,
-    type: "House",
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2200,
-    images: ["/placeholder.svg"],
-    status: "active",
-    interestedUsers: 7,
-    viewCount: 124,
-    favoriteCount: 18,
-    created: "2023-10-15"
-  },
-  {
-    id: "prop002",
-    title: "Downtown Apartment",
-    address: "456 Urban Ave, Boston, MA",
-    price: 320000,
-    type: "Apartment",
-    bedrooms: 2,
-    bathrooms: 1,
-    sqft: 1100,
-    images: ["/placeholder.svg"],
-    status: "active",
-    interestedUsers: 5,
-    viewCount: 87,
-    favoriteCount: 12,
-    created: "2023-11-05"
-  },
-  {
-    id: "prop003",
-    title: "Suburban Land Plot",
-    address: "789 Meadow Lane, Concord, MA",
-    price: 180000,
-    type: "Land",
-    sqft: 8500,
-    images: ["/placeholder.svg"],
-    status: "inactive",
-    interestedUsers: 2,
-    viewCount: 45,
-    favoriteCount: 4,
-    created: "2023-12-20"
-  }
-];
-
-const MOCK_INTERESTED_USERS = [
-  {
-    id: "user001",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "617-555-1234",
-    propertyId: "prop001",
-    contactDate: "2024-01-15",
-    message: "I'm interested in scheduling a viewing this weekend.",
-    status: "new"
-  },
-  {
-    id: "user002",
-    name: "Emily Johnson",
-    email: "emily.j@example.com",
-    phone: "617-555-5678",
-    propertyId: "prop001",
-    contactDate: "2024-01-12",
-    message: "Is this property still available? I'd like to know more about the neighborhood.",
-    status: "contacted"
-  },
-  {
-    id: "user003",
-    name: "Michael Chen",
-    email: "m.chen@example.com",
-    phone: "617-555-9012",
-    propertyId: "prop002",
-    contactDate: "2024-01-10",
-    message: "I'm pre-approved for a mortgage and would like to see this apartment.",
-    status: "new"
-  },
-  {
-    id: "user004",
-    name: "Sarah Williams",
-    email: "s.williams@example.com",
-    phone: "617-555-3456",
-    propertyId: "prop001",
-    contactDate: "2024-01-08",
-    message: "Are utilities included in the asking price? Looking to schedule a visit.",
-    status: "contacted"
-  },
-  {
-    id: "user005",
-    name: "Robert Davis",
-    email: "r.davis@example.com",
-    phone: "617-555-7890",
-    propertyId: "prop002",
-    contactDate: "2024-01-05",
-    message: "Is there parking available? I'm very interested in this property.",
-    status: "new"
-  }
-];
+import { toast } from "@/hooks/use-toast";
+import usePropertyAPI from "@/hooks/usePropertyAPI";
+import { inquiryAPI } from "@/services/api";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -134,36 +35,101 @@ const SellerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
+  const [interestedUsers, setInterestedUsers] = useState([]);
+  const [interestedUsersLoading, setInterestedUsersLoading] = useState(true);
+  
+  // Get seller properties
+  const { useSellerProperties, useDeleteProperty, useUpdateProperty } = usePropertyAPI();
+  const { data: properties = [], isLoading: propertiesLoading, error: propertiesError, refetch: refreshProperties } = useSellerProperties();
+  const deletePropertyMutation = useDeleteProperty();
+  const updatePropertyMutation = useUpdateProperty();
 
-  const filteredProperties = MOCK_PROPERTIES.filter(property => {
+  useEffect(() => {
+    // Fetch interested buyers/inquiries
+    const fetchInquiries = async () => {
+      try {
+        setInterestedUsersLoading(true);
+        const response = await inquiryAPI.getSellerInquiries();
+        setInterestedUsers(response.data || []);
+      } catch (error) {
+        console.error("Error fetching inquiries:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load interested buyers.",
+          variant: "destructive"
+        });
+        setInterestedUsers([]);
+      } finally {
+        setInterestedUsersLoading(false);
+      }
+    };
+    
+    fetchInquiries();
+  }, []);
+
+  // Filter properties based on view mode
+  const filteredProperties = Array.isArray(properties) ? properties.filter(property => {
     if (viewMode === "all") return true;
-    return property.status === viewMode;
-  });
-
-  const filteredUsers = MOCK_INTERESTED_USERS.filter(user => {
+    if (viewMode === "active") return property.status === "active";
+    if (viewMode === "inactive") return property.status !== "active";
+    return true;
+  }) : [];
+  
+  // Filter interested users based on user filter and search query
+  const filteredUsers = Array.isArray(interestedUsers) ? interestedUsers.filter(user => {
     const matchesFilter = userFilter === "all" || user.status === userFilter;
     const matchesSearch = searchQuery === "" || 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.propertyId.toLowerCase().includes(searchQuery.toLowerCase());
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.propertyId?.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesFilter && matchesSearch;
-  });
+  }) : [];
 
-  const togglePropertyStatus = (propertyId: string) => {
-    console.log(`Toggled visibility for property: ${propertyId}`);
-    toast({
-      title: "Status Updated",
-      description: "Property visibility has been updated successfully",
-    });
+  // Toggle property status (active/inactive)
+  const togglePropertyStatus = async (propertyId: string) => {
+    try {
+      const property = properties.find(p => p._id === propertyId || p.id === propertyId);
+      if (!property) return;
+      
+      const newStatus = property.status === "active" ? "inactive" : "active";
+      
+      await updatePropertyMutation.mutateAsync({
+        id: propertyId,
+        data: { status: newStatus }
+      });
+      
+    } catch (error) {
+      console.error("Error toggling property status:", error);
+    }
   };
 
-  const markUserAsContacted = (userId: string) => {
-    console.log(`Marked user ${userId} as contacted`);
-    toast({
-      title: "Contact Status Updated",
-      description: "User has been marked as contacted",
-    });
+  // Mark user as contacted
+  const markUserAsContacted = async (userId: string) => {
+    try {
+      // Find the inquiry
+      const inquiry = interestedUsers.find(user => user.id === userId);
+      if (!inquiry) return;
+      
+      // Mark as contacted by sending a placeholder response
+      await inquiryAPI.respondToInquiry(userId, "Your inquiry has been received. We will contact you soon.");
+      
+      // Refresh the inquiries
+      const response = await inquiryAPI.getSellerInquiries();
+      setInterestedUsers(response.data || []);
+      
+      toast({
+        title: "Contact Status Updated",
+        description: "User has been marked as contacted",
+      });
+    } catch (error) {
+      console.error("Error marking user as contacted:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update contact status",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditProperty = (propertyId: string) => {
@@ -175,17 +141,24 @@ const SellerDashboard = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (propertyToDelete) {
-      console.log(`Deleting property: ${propertyToDelete}`);
-      toast({
-        title: "Property Deleted",
-        description: "The property has been successfully removed",
-      });
-      setShowDeleteDialog(false);
-      setPropertyToDelete(null);
+      try {
+        await deletePropertyMutation.mutateAsync(propertyToDelete);
+        setShowDeleteDialog(false);
+        setPropertyToDelete(null);
+        // Refresh properties will happen automatically due to queryClient invalidation
+      } catch (error) {
+        console.error("Error deleting property:", error);
+      }
     }
   };
+
+  // Calculate stats for the dashboard
+  const totalProperties = filteredProperties.length;
+  const totalInterested = filteredUsers.length;
+  const totalViews = filteredProperties.reduce((sum, prop) => sum + (prop.viewCount || 0), 0);
+  const newInquiries = filteredUsers.filter(u => u.status === "new").length;
 
   return (
     <SidebarProvider>
@@ -269,7 +242,7 @@ const SellerDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{MOCK_PROPERTIES.length}</div>
+                <div className="text-3xl font-bold">{totalProperties}</div>
               </CardContent>
             </Card>
             <Card>
@@ -279,7 +252,7 @@ const SellerDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{MOCK_INTERESTED_USERS.length}</div>
+                <div className="text-3xl font-bold">{totalInterested}</div>
               </CardContent>
             </Card>
             <Card>
@@ -289,9 +262,7 @@ const SellerDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
-                  {MOCK_PROPERTIES.reduce((sum, prop) => sum + prop.viewCount, 0)}
-                </div>
+                <div className="text-3xl font-bold">{totalViews}</div>
               </CardContent>
             </Card>
           </div>
@@ -333,17 +304,66 @@ const SellerDashboard = () => {
                 </Button>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredProperties.map(property => (
-                  <SellerPropertyCard 
-                    key={property.id}
-                    property={property}
-                    onToggleStatus={togglePropertyStatus}
-                    onEdit={handleEditProperty}
-                    onDelete={handleDeleteClick}
-                  />
-                ))}
-              </div>
+              {propertiesLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
+                  <p>Loading your properties...</p>
+                </div>
+              ) : propertiesError ? (
+                <div className="text-center py-12 text-red-500">
+                  <p>Error loading properties. Please try again.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => refreshProperties()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : filteredProperties.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-gray-50">
+                  <Home className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">No properties found</h3>
+                  <p className="text-gray-500 mb-4">
+                    {viewMode === "all" 
+                      ? "You haven't added any properties yet" 
+                      : `No ${viewMode} properties found`}
+                  </p>
+                  <Button onClick={() => navigate("/seller/property/add")}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Property
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredProperties.map(property => (
+                    <SellerPropertyCard 
+                      key={property._id || property.id}
+                      property={{
+                        id: property._id || property.id,
+                        title: property.title,
+                        address: property.address,
+                        price: property.price,
+                        type: property.type,
+                        bedrooms: property.bedrooms,
+                        bathrooms: property.bathrooms,
+                        sqft: property.sqft,
+                        images: property.images && property.images.length > 0 
+                          ? property.images.map(img => img.url || img) 
+                          : ['/placeholder.svg'],
+                        status: property.status,
+                        interestedUsers: property.interestedUsers || 0,
+                        viewCount: property.viewCount || 0,
+                        favoriteCount: property.favoriteCount || 0,
+                        created: property.createdAt || new Date().toISOString()
+                      }}
+                      onToggleStatus={togglePropertyStatus}
+                      onEdit={handleEditProperty}
+                      onDelete={handleDeleteClick}
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="interested" className="space-y-4">
@@ -359,7 +379,7 @@ const SellerDashboard = () => {
                   <ActionButton 
                     variant={userFilter === "new" ? "accent" : "default"}
                     active={userFilter === "new"}
-                    badge={MOCK_INTERESTED_USERS.filter(u => u.status === "new").length.toString()}
+                    badge={newInquiries.toString()}
                     onClick={() => setUserFilter("new")}
                   >
                     New
@@ -383,58 +403,73 @@ const SellerDashboard = () => {
                 </div>
               </div>
               
-              <div className="rounded-lg border bg-card">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Contact Info</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>
-                          <div>{user.email}</div>
-                          <div className="text-muted-foreground">{user.phone}</div>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.contactDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={user.status === "new" ? "bg-accent" : "bg-muted"}>
-                            {user.status === "new" ? "New" : "Contacted"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              disabled={user.status === "contacted"}
-                              onClick={() => markUserAsContacted(user.id)}
-                            >
-                              <Bell className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              {interestedUsersLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
+                  <p>Loading interested buyers...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-gray-50">
+                  <Users className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">No interested buyers found</h3>
+                  <p className="text-gray-500 mb-4">
+                    When buyers inquire about your properties, they'll appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-card">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact Info</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>
+                            <div>{user.email}</div>
+                            <div className="text-muted-foreground">{user.phone}</div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.contactDate || user.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={user.status === "new" ? "bg-accent" : "bg-muted"}>
+                              {user.status === "new" ? "New" : "Contacted"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={user.status !== "new"}
+                                onClick={() => markUserAsContacted(user.id)}
+                              >
+                                <Bell className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

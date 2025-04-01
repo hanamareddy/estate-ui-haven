@@ -29,12 +29,12 @@ export const usePropertyAPI = () => {
   const useCreateProperty = () => {
     return useMutation({
       mutationFn: (propertyData: any) => propertyAPI.createProperty(propertyData),
-      onSuccess: (data) => {
+      onSuccess: (response) => {
         queryClient.invalidateQueries({ queryKey: ['properties'] });
         queryClient.invalidateQueries({ queryKey: ['sellerProperties'] });
         toast({
           title: "Property Created",
-          description: `Your property "${data.title}" has been created successfully!`,
+          description: `Your property has been created successfully!`,
         });
         navigate("/seller/dashboard");
       },

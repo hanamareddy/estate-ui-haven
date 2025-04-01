@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { toast } from '@/components/ui/use-toast';
-import api from '@/services/api';
+import { toast } from '@/hooks/use-toast';
+import { userAPI } from '@/services/api';
+import mongoAuthService from '@/services/mongoAuthService';
 
 export interface Notification {
   id: string;
@@ -25,7 +26,7 @@ export const useNotifications = () => {
       setError(null);
       
       // Check if user is authenticated
-      const token = localStorage.getItem('auth_token');
+      const token = mongoAuthService.getToken();
       if (!token) {
         setNotifications([]);
         setUnreadCount(0);
@@ -34,7 +35,7 @@ export const useNotifications = () => {
       }
       
       // Fetch notifications from API
-      const response = await api.get('/users/notifications');
+      const response = await userAPI.getNotifications();
       const notificationsData = response.data;
       
       setNotifications(notificationsData);
@@ -53,7 +54,7 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       // Make API call to mark notification as read
-      await api.put(`/users/notifications/${notificationId}/read`);
+      await userAPI.markNotificationRead(notificationId);
       
       // Update local state
       setNotifications(currentNotifications => 
@@ -76,7 +77,7 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     try {
       // Make API call to mark all notifications as read
-      await api.put('/users/notifications/read-all');
+      await userAPI.markAllNotificationsRead();
       
       // Update local state
       setNotifications(currentNotifications => 
@@ -104,13 +105,13 @@ export const useNotifications = () => {
 
   useEffect(() => {
     // Only fetch notifications if user is authenticated
-    if (localStorage.getItem('auth_token')) {
+    if (mongoAuthService.isAuthenticated()) {
       fetchNotifications();
     }
     
     // Set up interval to periodically check for new notifications (every 2 minutes)
     const intervalId = setInterval(() => {
-      if (localStorage.getItem('auth_token')) {
+      if (mongoAuthService.isAuthenticated()) {
         fetchNotifications();
       }
     }, 2 * 60 * 1000);

@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/use-toast";
-import { User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Loader2, User } from "lucide-react";
+import { useUserAPI } from "@/hooks/useUserAPI";
+import mongoAuthService from "@/services/mongoAuthService";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -19,54 +20,37 @@ const UserProfile = () => {
     email: "",
     phone: "",
     isseller: false,
-    companyname: "",
-    reraid: ""
+    companyName: "",
+    reraId: ""
   });
 
+  const { useGetProfile, useUpdateProfile } = useUserAPI();
+  const { data: profileData, isLoading: profileLoading, error: profileError, refetch: refreshProfile } = useGetProfile();
+  const updateProfileMutation = useUpdateProfile();
+
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: session } = await supabase.auth.getSession();
-      
-      if (!session.session) {
-        navigate("/auth");
-        return;
-      }
-
-      setUser(session.session.user);
-
-      // Fetch user profile
-      const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.session.user.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your profile",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (profileData) {
-        setProfile({
-          name: profileData.name || "",
-          email: profileData.email || "",
-          phone: profileData.phone || "",
-          isseller: profileData.isseller || false,
-          companyname: profileData.companyname || "",
-          reraid: profileData.reraid || ""
-        });
-      }
-      
+    // Check if the user is authenticated
+    const currentUser = mongoAuthService.getCurrentUser();
+    if (!currentUser) {
+      navigate("/auth");
+      return;
+    }
+    
+    setUser(currentUser);
+    
+    // If profile data is loaded, update the state
+    if (profileData) {
+      setProfile({
+        name: profileData.name || currentUser.name || "",
+        email: profileData.email || currentUser.email || "",
+        phone: profileData.phone || "",
+        isseller: profileData.isseller || currentUser.isseller || false,
+        companyName: profileData.companyName || "",
+        reraId: profileData.reraId || ""
+      });
       setLoading(false);
-    };
-
-    checkAuth();
-  }, [navigate]);
+    }
+  }, [navigate, profileData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,38 +65,41 @@ const UserProfile = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          name: profile.name,
-          phone: profile.phone,
-          companyname: profile.isseller ? profile.companyname : null,
-          reraid: profile.isseller ? profile.reraid : null
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
+      // Use the update profile mutation
+      await updateProfileMutation.mutateAsync({
+        name: profile.name,
+        phone: profile.phone,
+        companyName: profile.isseller ? profile.companyName : null,
+        reraId: profile.isseller ? profile.reraId : null
       });
+      
+      // Success is handled by the mutation
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
+      // Error is handled by the mutation
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  if (profileLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <p>Loading profile...</p>
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (profileError) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Failed to load profile data</p>
+          <Button onClick={() => refreshProfile()}>Retry</Button>
+        </div>
       </div>
     );
   }
@@ -158,7 +145,7 @@ const UserProfile = () => {
                     <Input
                       id="email"
                       name="email"
-                      value={profile.email || user.email}
+                      value={profile.email || user?.email}
                       disabled
                     />
                   </div>
@@ -183,26 +170,26 @@ const UserProfile = () => {
                     <h3 className="text-lg font-medium mb-4">Seller Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label htmlFor="companyname" className="block text-sm font-medium">
+                        <label htmlFor="companyName" className="block text-sm font-medium">
                           Company Name
                         </label>
                         <Input
-                          id="companyname"
-                          name="companyname"
-                          value={profile.companyname}
+                          id="companyName"
+                          name="companyName"
+                          value={profile.companyName}
                           onChange={handleInputChange}
                           placeholder="Your Real Estate Company"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="reraid" className="block text-sm font-medium">
+                        <label htmlFor="reraId" className="block text-sm font-medium">
                           RERA ID
                         </label>
                         <Input
-                          id="reraid"
-                          name="reraid"
-                          value={profile.reraid}
+                          id="reraId"
+                          name="reraId"
+                          value={profile.reraId}
                           onChange={handleInputChange}
                           placeholder="RERA ID Number"
                         />
@@ -211,8 +198,8 @@ const UserProfile = () => {
                   </>
                 )}
 
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save Changes"}
+                <Button type="submit" disabled={updateProfileMutation.isPending}>
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </form>
             </CardContent>
@@ -233,16 +220,14 @@ const UserProfile = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => {
-                    supabase.auth.resetPasswordForEmail(user.email, {
-                      redirectTo: `${window.location.origin}/reset-password`,
-                    });
+                    navigate("/forgot-password");
                     toast({
-                      title: "Password reset email sent",
-                      description: "Check your email for a link to reset your password",
+                      title: "Password reset",
+                      description: "You will be redirected to reset your password",
                     });
                   }}
                 >
-                  Send Reset Password Email
+                  Reset Password
                 </Button>
               </div>
             </CardContent>

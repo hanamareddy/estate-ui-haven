@@ -10,32 +10,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { Calendar, Home, Heart, Bell, MessageSquare, AlertCircle } from 'lucide-react';
+import { Calendar, Home, Heart, Bell, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SavedSearches from '@/components/SavedSearches';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { userAPI } from '@/services/api';
-import useFavorites from '@/hooks/useFavorites';
+import { useUserAPI } from '@/hooks/useUserAPI';
 import { usePropertyInquiries } from '@/hooks/usePropertyInquiries';
 import { PropertyInquiry } from '@/hooks/usePropertyInquiries';
 import { formatCurrency } from '@/utils/formatters';
-import { CalendarDateRangePicker } from "@/components/ui/date-range-picker";
 
 const BuyerDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   // State variables
   const [savedSearchCount, setSavedSearchCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Favorites hook
-  const { favorites, loading: favoritesLoading, error: favoritesError, refreshFavorites } = useFavorites();
-  const favoritesCount = favorites.length;
+  // Get user favorites
+  const { useGetFavorites } = useUserAPI();
+  const { data: favorites = [], isLoading: favoritesLoading, error: favoritesError, refetch: refreshFavorites } = useGetFavorites();
 
   // Use the property inquiries hook
   const { inquiries, loading: inquiriesLoading, error: inquiriesError, refreshUserInquiries } = usePropertyInquiries();
@@ -44,11 +42,14 @@ const BuyerDashboard = () => {
     // Get saved searches count from API
     const fetchSavedSearchesCount = async () => {
       try {
+        setIsLoading(true);
         const response = await userAPI.getSavedSearches();
         setSavedSearchCount((response.data || []).length);
       } catch (error) {
         console.error("Error fetching saved searches count:", error);
         setSavedSearchCount(0);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -79,8 +80,8 @@ const BuyerDashboard = () => {
             <TabsTrigger value="favorites" className="flex items-center">
               <Heart className="mr-2 h-4 w-4" />
               <span>Favorites</span>
-              {favoritesCount > 0 && (
-                <Badge variant="secondary" className="ml-2">{favoritesCount}</Badge>
+              {favorites.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{favorites.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="searches" className="flex items-center">
@@ -106,14 +107,17 @@ const BuyerDashboard = () => {
                 <h2 className="text-2xl font-semibold">Favorite Properties</h2>
                 <Button 
                   variant="outline" 
-                  onClick={refreshFavorites}
+                  onClick={() => refreshFavorites()}
                 >
                   Refresh
                 </Button>
               </div>
               
               {favoritesLoading ? (
-                <div className="text-center py-8">Loading your favorite properties...</div>
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p>Loading your favorite properties...</p>
+                </div>
               ) : favoritesError ? (
                 <div className="text-center py-8 text-red-500">
                   <AlertCircle className="mx-auto h-8 w-8 mb-2" />
@@ -131,10 +135,12 @@ const BuyerDashboard = () => {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {favorites.map((property) => (
-                    <Card key={property.id} className="overflow-hidden">
+                    <Card key={property._id || property.id} className="overflow-hidden">
                       <div className="relative">
                         <img 
-                          src={property.images && property.images.length > 0 ? property.images[0] : '/placeholder.svg'} 
+                          src={(property.images && property.images.length > 0) 
+                            ? (property.images[0].url || property.images[0]) 
+                            : '/placeholder.svg'} 
                           alt={property.title} 
                           className="w-full h-48 object-cover"
                         />
@@ -150,7 +156,7 @@ const BuyerDashboard = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => navigate(`/property/${property.id}`)}
+                            onClick={() => navigate(`/property/${property._id || property.id}`)}
                           >
                             View
                           </Button>
@@ -165,7 +171,14 @@ const BuyerDashboard = () => {
           
           {/* Saved Searches Tab */}
           <TabsContent value="searches">
-            <SavedSearches />
+            {isLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                <p>Loading your saved searches...</p>
+              </div>
+            ) : (
+              <SavedSearches />
+            )}
           </TabsContent>
           
           {/* Inquiries Tab */}
@@ -182,7 +195,10 @@ const BuyerDashboard = () => {
               </div>
               
               {inquiriesLoading ? (
-                <div className="text-center py-8">Loading your inquiries...</div>
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p>Loading your inquiries...</p>
+                </div>
               ) : inquiriesError ? (
                 <div className="text-center py-8 text-red-500">
                   <AlertCircle className="mx-auto h-8 w-8 mb-2" />
