@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, ArrowLeft } from "lucide-react";
 import { useUserAPI } from "@/hooks/useUserAPI";
 import mongoAuthService from "@/services/mongoAuthService";
 
 const UserProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -52,7 +52,7 @@ const UserProfile = () => {
     }
   }, [navigate, profileData]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setProfile(prev => ({
       ...prev,
@@ -60,7 +60,7 @@ const UserProfile = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -79,6 +79,14 @@ const UserProfile = () => {
       // Error is handled by the mutation
     } finally {
       setLoading(false);
+    }
+  };
+
+  const goBack = () => {
+    if (user?.isseller) {
+      navigate("/seller/dashboard");
+    } else {
+      navigate("/buyer/dashboard");
     }
   };
 
@@ -106,9 +114,14 @@ const UserProfile = () => {
 
   return (
     <div className="container max-w-4xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Your Profile</h1>
-        <p className="text-muted-foreground">Manage your account information</p>
+      <div className="mb-8 flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={goBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Your Profile</h1>
+          <p className="text-muted-foreground">Manage your account information</p>
+        </div>
       </div>
 
       <Tabs defaultValue="personal" className="space-y-6">

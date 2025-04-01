@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, Search, User, Bell, ChevronDown } from 'lucide-react';
@@ -8,30 +9,48 @@ import { FilterSidebar } from './filters/FilterSidebar';
 import mongoAuthService from '@/services/mongoAuthService';
 import useNotifications from '@/hooks/useNotifications';
 
+interface NavbarProps {
+  activeStatus?: string;
+  activeType?: string;
+  priceRange?: { min: string; max: string };
+  bedrooms?: string;
+  bathrooms?: string;
+  areaRange?: { min: string; max: string };
+  selectedAmenities?: string[];
+  onStatusChange?: (status: string) => void;
+  onTypeChange?: (type: string) => void;
+  handlePriceChange?: (type: 'min' | 'max', value: string) => void;
+  setBedrooms?: (value: string) => void;
+  setBathrooms?: (value: string) => void;
+  handleAreaChange?: (type: 'min' | 'max', value: string) => void;
+  toggleAmenity?: (amenity: string) => void;
+  resetFilters?: () => void;
+}
+
 const Navbar = ({
-  activeStatus,
-  activeType,
-  priceRange,
-  bedrooms,
-  bathrooms,
-  areaRange,
-  selectedAmenities,
-  onStatusChange,
-  onTypeChange,
-  handlePriceChange,
-  setBedrooms,
-  setBathrooms,
-  handleAreaChange,
-  toggleAmenity,
-  resetFilters
-}) => {
+  activeStatus = 'all',
+  activeType = 'all',
+  priceRange = { min: '', max: '' },
+  bedrooms = '',
+  bathrooms = '',
+  areaRange = { min: '', max: '' },
+  selectedAmenities = [],
+  onStatusChange = () => {},
+  onTypeChange = () => {},
+  handlePriceChange = () => {},
+  setBedrooms = () => {},
+  setBathrooms = () => {},
+  handleAreaChange = () => {},
+  toggleAmenity = () => {},
+  resetFilters = () => {}
+}: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isAuthenticated = mongoAuthService.isAuthenticated();
   const userType = isAuthenticated ? mongoAuthService.getUserType() : null;
-  const { unreadCount } = useNotifications();
+  const { unreadCount = 0 } = useNotifications();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -71,19 +90,16 @@ const Navbar = ({
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
             <Link to="/" className="text-foreground hover:text-accent transition-colors">Home</Link>
-            <Link to="/properties" className="text-foreground hover:text-accent transition-colors">Properties</Link>
+            <Link to="/" className="text-foreground hover:text-accent transition-colors">Properties</Link>
             <div className="relative group">
               <button className="flex items-center text-foreground hover:text-accent transition-colors">
                 Services <ChevronDown className="ml-1 h-4 w-4" />
               </button>
               <div className="absolute z-50 left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-2 hidden group-hover:block">
-                <Link to="/mortgage-calculator" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Mortgage Calculator</Link>
                 <Link to="/market-trends" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Market Trends</Link>
-                <Link to="/nearby-properties" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Nearby Properties</Link>
+                <Link to="/property/nearby" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Nearby Properties</Link>
               </div>
             </div>
-            <Link to="/about" className="text-foreground hover:text-accent transition-colors">About</Link>
-            <Link to="/contact" className="text-foreground hover:text-accent transition-colors">Contact</Link>
           </nav>
           
           {/* Right side - Auth & Search */}
@@ -105,7 +121,9 @@ const Navbar = ({
                       )}
                     </Button>
                   </SheetTrigger>
-                  <NotificationCenter />
+                  <SheetContent>
+                    <NotificationCenter />
+                  </SheetContent>
                 </Sheet>
                 
                 <div className="relative group">
@@ -153,11 +171,32 @@ const Navbar = ({
           <div className="md:hidden py-4">
             <div className="flex flex-col space-y-4">
               <Link to="/" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-              <Link to="/properties" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Properties</Link>
-              <Link to="/mortgage-calculator" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Mortgage Calculator</Link>
+              <Link to="/" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Properties</Link>
               <Link to="/market-trends" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Market Trends</Link>
-              <Link to="/about" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>About</Link>
-              <Link to="/contact" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+              <Link to="/property/nearby" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Nearby Properties</Link>
+              {isAuthenticated && (
+                <>
+                  <Link to="/profile" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Profile</Link>
+                  {userType === 'seller' && (
+                    <>
+                      <Link to="/seller/dashboard" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Seller Dashboard</Link>
+                      <Link to="/seller/property/add" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Add Property</Link>
+                    </>
+                  )}
+                  {userType === 'buyer' && (
+                    <Link to="/buyer/dashboard" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Buyer Dashboard</Link>
+                  )}
+                  <button 
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }} 
+                    className="text-left text-foreground hover:text-accent transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

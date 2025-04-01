@@ -40,7 +40,7 @@ const PropertyGrid = () => {
   }, []);
   
   // Get properties from API response
-  const properties = data?.data || [];
+  const properties = data?.properties || [];
 
   // Handle adding/removing properties to compare
   const toggleCompare = (property: any) => {

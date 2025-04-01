@@ -63,10 +63,10 @@ const FeaturedProperties: React.FC<FeaturedPropertiesProps> = ({
       {featuredProperties.map((property) => (
         <PropertyCard
           key={property._id} 
-          property={property}
+          propertyData={property}
           isCompared={compareProperties.some(p => p._id === property._id)}
           onCompare={() => toggleCompare(property)}
-          isFeatured
+          isFeatured={true}
         />
       ))}
     </div>

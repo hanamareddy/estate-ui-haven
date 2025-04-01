@@ -30,7 +30,6 @@ interface SellerPropertyCardProps {
   onDelete?: (id: string) => void;
 }
 
-// Change from named export to default export
 export default function SellerPropertyCard({ 
   property, 
   onToggleStatus, 
