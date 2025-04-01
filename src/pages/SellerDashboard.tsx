@@ -31,10 +31,10 @@ const SellerDashboard = () => {
   const deletePropertyMutation = useDeleteProperty();
   const updatePropertyMutation = useUpdateProperty();
 
-  // Prepare properties data
+  // Prepare properties data - ensure it's an array
   const allProperties = sellerPropertiesData?.properties || [];
   
-  // Filter properties
+  // Filter properties - now we're sure allProperties is an array
   const filteredProperties = allProperties
     .filter(property => {
       // Search filter

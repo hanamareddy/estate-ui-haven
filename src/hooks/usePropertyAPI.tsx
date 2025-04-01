@@ -12,7 +12,10 @@ export const usePropertyAPI = () => {
   const useProperties = (filters = {}) => {
     return useQuery({
       queryKey: ['properties', filters],
-      queryFn: () => propertyAPI.getProperties(filters),
+      queryFn: async () => {
+        const response = await propertyAPI.getProperties(filters);
+        return response.data; // Return the data property which contains properties array
+      },
     });
   };
   
@@ -20,7 +23,10 @@ export const usePropertyAPI = () => {
   const useProperty = (id: string) => {
     return useQuery({
       queryKey: ['property', id],
-      queryFn: () => propertyAPI.getProperty(id),
+      queryFn: async () => {
+        const response = await propertyAPI.getProperty(id);
+        return response.data;
+      },
       enabled: !!id,
     });
   };
@@ -99,7 +105,10 @@ export const usePropertyAPI = () => {
   const useSellerProperties = () => {
     return useQuery({
       queryKey: ['sellerProperties'],
-      queryFn: () => propertyAPI.getSellerProperties(),
+      queryFn: async () => {
+        const response = await propertyAPI.getSellerProperties();
+        return response.data; // Return data directly
+      },
     });
   };
   
