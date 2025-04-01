@@ -32,7 +32,7 @@ const SellerDashboard = () => {
   const updatePropertyMutation = useUpdateProperty();
 
   // Prepare properties data
-  const allProperties = sellerPropertiesData || [];
+  const allProperties = sellerPropertiesData?.properties || [];
   
   // Filter properties
   const filteredProperties = allProperties
