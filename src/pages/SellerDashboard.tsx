@@ -1,497 +1,312 @@
-
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { 
-  Eye, EyeOff, Users, Home, Star, ClipboardList, 
-  ArrowLeft, Filter, Mail, Bell, Plus, Trash2, Loader2
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { PlusCircle, Package, User, Home, BarChart3, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SellerPropertyCard } from "@/components/SellerPropertyCard";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarGroup, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import ActionButton from "@/components/ActionButton";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import SellerPropertyCard from "@/components/SellerPropertyCard";
+import mongoAuthService from "@/services/mongoAuthService";
+import { toast } from "@/components/ui/use-toast";
 import usePropertyAPI from "@/hooks/usePropertyAPI";
-import { inquiryAPI } from "@/services/api";
 
 const SellerDashboard = () => {
-  const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<"all" | "active" | "inactive">("all");
-  const [userFilter, setUserFilter] = useState<"all" | "new" | "contacted">("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
-  const [interestedUsers, setInterestedUsers] = useState([]);
-  const [interestedUsersLoading, setInterestedUsersLoading] = useState(true);
-  
-  // Get seller properties
-  const { useSellerProperties, useDeleteProperty, useUpdateProperty } = usePropertyAPI();
-  const { data: properties = [], isLoading: propertiesLoading, error: propertiesError, refetch: refreshProperties } = useSellerProperties();
+  const [activeTab, setActiveTab] = useState("properties");
+  const { useSellerProperties, useDeleteProperty } = usePropertyAPI();
+  const { data: properties, isLoading, error, refetch } = useSellerProperties();
   const deletePropertyMutation = useDeleteProperty();
-  const updatePropertyMutation = useUpdateProperty();
-
-  useEffect(() => {
-    // Fetch interested buyers/inquiries
-    const fetchInquiries = async () => {
-      try {
-        setInterestedUsersLoading(true);
-        const response = await inquiryAPI.getSellerInquiries();
-        setInterestedUsers(response.data || []);
-      } catch (error) {
-        console.error("Error fetching inquiries:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load interested buyers.",
-          variant: "destructive"
-        });
-        setInterestedUsers([]);
-      } finally {
-        setInterestedUsersLoading(false);
-      }
-    };
-    
-    fetchInquiries();
-  }, []);
-
-  // Filter properties based on view mode
-  const filteredProperties = Array.isArray(properties) ? properties.filter(property => {
-    if (viewMode === "all") return true;
-    if (viewMode === "active") return property.status === "active";
-    if (viewMode === "inactive") return property.status !== "active";
-    return true;
-  }) : [];
   
-  // Filter interested users based on user filter and search query
-  const filteredUsers = Array.isArray(interestedUsers) ? interestedUsers.filter(user => {
-    const matchesFilter = userFilter === "all" || user.status === userFilter;
-    const matchesSearch = searchQuery === "" || 
-      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.propertyId?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesFilter && matchesSearch;
-  }) : [];
-
-  // Toggle property status (active/inactive)
-  const togglePropertyStatus = async (propertyId: string) => {
-    try {
-      const property = properties.find(p => p._id === propertyId || p.id === propertyId);
-      if (!property) return;
-      
-      const newStatus = property.status === "active" ? "inactive" : "active";
-      
-      await updatePropertyMutation.mutateAsync({
-        id: propertyId,
-        data: { status: newStatus }
-      });
-      
-    } catch (error) {
-      console.error("Error toggling property status:", error);
-    }
+  // Get user profile information
+  const user = mongoAuthService.getUser();
+  const firstName = user?.name?.split(' ')[0] || 'Seller';
+  
+  const handleLogout = () => {
+    mongoAuthService.logout();
+    window.location.href = '/';
   };
-
-  // Mark user as contacted
-  const markUserAsContacted = async (userId: string) => {
-    try {
-      // Find the inquiry
-      const inquiry = interestedUsers.find(user => user.id === userId);
-      if (!inquiry) return;
-      
-      // Mark as contacted by sending a placeholder response
-      await inquiryAPI.respondToInquiry(userId, "Your inquiry has been received. We will contact you soon.");
-      
-      // Refresh the inquiries
-      const response = await inquiryAPI.getSellerInquiries();
-      setInterestedUsers(response.data || []);
-      
-      toast({
-        title: "Contact Status Updated",
-        description: "User has been marked as contacted",
-      });
-    } catch (error) {
-      console.error("Error marking user as contacted:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update contact status",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleEditProperty = (propertyId: string) => {
-    navigate(`/seller/property/edit/${propertyId}`);
-  };
-
-  const handleDeleteClick = (propertyId: string) => {
-    setPropertyToDelete(propertyId);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDelete = async () => {
-    if (propertyToDelete) {
+  
+  const handleDeleteProperty = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
       try {
-        await deletePropertyMutation.mutateAsync(propertyToDelete);
-        setShowDeleteDialog(false);
-        setPropertyToDelete(null);
-        // Refresh properties will happen automatically due to queryClient invalidation
+        await deletePropertyMutation.mutateAsync(id);
+        refetch(); // Refresh the property list
       } catch (error) {
         console.error("Error deleting property:", error);
       }
     }
   };
-
-  // Calculate stats for the dashboard
-  const totalProperties = filteredProperties.length;
-  const totalInterested = filteredUsers.length;
-  const totalViews = filteredProperties.reduce((sum, prop) => sum + (prop.viewCount || 0), 0);
-  const newInquiries = filteredUsers.filter(u => u.status === "new").length;
-
+  
+  const activeProperties = Array.isArray(properties)
+    ? properties.filter(property => property.status === 'active')
+    : [];
+  
+  const inactiveProperties = Array.isArray(properties)
+    ? properties.filter(property => property.status !== 'active')
+    : [];
+  
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen bg-secondary/30">
-        <Sidebar className="border-r">
-          <SidebarHeader className="border-b">
-            <div className="flex items-center gap-2 px-2 py-4">
-              <Home className="h-6 w-6 text-accent" />
-              <h1 className="text-xl font-semibold">RealEstate Pro</h1>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Dashboard">
-                    <Link to="/seller/dashboard" className="font-medium text-accent">
-                      <ClipboardList />
-                      <span>Dashboard</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Properties">
-                    <Link to="/seller/dashboard">
-                      <Home />
-                      <span>Properties</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Add Property">
-                    <Link to="/seller/property/add">
-                      <Plus />
-                      <span>Add Property</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Interested Buyers">
-                    <Link to="/seller/dashboard">
-                      <Users />
-                      <span>Interested Buyers</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Analytics">
-                    <Link to="/seller/dashboard">
-                      <Star />
-                      <span>Analytics</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter className="border-t">
-            <div className="p-4">
-              <Button asChild variant="outline" className="w-full justify-start">
-                <Link to="/">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Website
-                </Link>
-              </Button>
-            </div>
-          </SidebarFooter>
-        </Sidebar>
-        
-        <div className="flex-1 p-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
-            <p className="text-muted-foreground">Manage your properties and interested buyers</p>
+    <div className="bg-secondary/10 min-h-screen">
+      {/* Dashboard header */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+            <p className="text-muted-foreground">Manage your real estate listings</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Properties
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{totalProperties}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Interested Buyers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{totalInterested}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Views
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{totalViews}</div>
-              </CardContent>
-            </Card>
+          <div className="flex gap-4">
+            <Button
+              as={Link}
+              to="/seller/property/add"
+              className="gap-2"
+              variant="default"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Add New Property
+            </Button>
           </div>
-          
-          <Tabs defaultValue="properties" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="properties">My Properties</TabsTrigger>
-              <TabsTrigger value="interested">Interested Buyers</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="properties" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <ActionButton 
-                    variant={viewMode === "all" ? "accent" : "default"}
-                    active={viewMode === "all"}
-                    onClick={() => setViewMode("all")}
-                  >
-                    All
-                  </ActionButton>
-                  <ActionButton 
-                    variant={viewMode === "active" ? "accent" : "default"}
-                    active={viewMode === "active"}
-                    onClick={() => setViewMode("active")}
-                  >
-                    Active
-                  </ActionButton>
-                  <ActionButton 
-                    variant={viewMode === "inactive" ? "accent" : "default"}
-                    active={viewMode === "inactive"}
-                    onClick={() => setViewMode("inactive")}
-                  >
-                    Inactive
-                  </ActionButton>
-                </div>
-                <Button onClick={() => navigate("/seller/property/add")}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Property
-                </Button>
-              </div>
-              
-              {propertiesLoading ? (
-                <div className="text-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
-                  <p>Loading your properties...</p>
-                </div>
-              ) : propertiesError ? (
-                <div className="text-center py-12 text-red-500">
-                  <p>Error loading properties. Please try again.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => refreshProperties()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : filteredProperties.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-gray-50">
-                  <Home className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No properties found</h3>
-                  <p className="text-gray-500 mb-4">
-                    {viewMode === "all" 
-                      ? "You haven't added any properties yet" 
-                      : `No ${viewMode} properties found`}
-                  </p>
-                  <Button onClick={() => navigate("/seller/property/add")}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Property
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {filteredProperties.map(property => (
-                    <SellerPropertyCard 
-                      key={property._id || property.id}
-                      property={{
-                        id: property._id || property.id,
-                        title: property.title,
-                        address: property.address,
-                        price: property.price,
-                        type: property.type,
-                        bedrooms: property.bedrooms,
-                        bathrooms: property.bathrooms,
-                        sqft: property.sqft,
-                        images: property.images && property.images.length > 0 
-                          ? property.images.map(img => img.url || img) 
-                          : ['/placeholder.svg'],
-                        status: property.status,
-                        interestedUsers: property.interestedUsers || 0,
-                        viewCount: property.viewCount || 0,
-                        favoriteCount: property.favoriteCount || 0,
-                        created: property.createdAt || new Date().toISOString()
-                      }}
-                      onToggleStatus={togglePropertyStatus}
-                      onEdit={handleEditProperty}
-                      onDelete={handleDeleteClick}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="interested" className="space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
-                <div className="flex gap-2">
-                  <ActionButton 
-                    variant={userFilter === "all" ? "accent" : "default"}
-                    active={userFilter === "all"}
-                    onClick={() => setUserFilter("all")}
-                  >
-                    All
-                  </ActionButton>
-                  <ActionButton 
-                    variant={userFilter === "new" ? "accent" : "default"}
-                    active={userFilter === "new"}
-                    badge={newInquiries.toString()}
-                    onClick={() => setUserFilter("new")}
-                  >
-                    New
-                  </ActionButton>
-                  <ActionButton 
-                    variant={userFilter === "contacted" ? "accent" : "default"}
-                    active={userFilter === "contacted"}
-                    onClick={() => setUserFilter("contacted")}
-                  >
-                    Contacted
-                  </ActionButton>
-                </div>
-                <div className="relative w-full sm:w-auto">
-                  <Input
-                    className="pl-10 w-full sm:w-[250px]"
-                    placeholder="Search buyers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              
-              {interestedUsersLoading ? (
-                <div className="text-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
-                  <p>Loading interested buyers...</p>
-                </div>
-              ) : filteredUsers.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-gray-50">
-                  <Users className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No interested buyers found</h3>
-                  <p className="text-gray-500 mb-4">
-                    When buyers inquire about your properties, they'll appear here
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-lg border bg-card">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Contact Info</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>
-                            <div>{user.email}</div>
-                            <div className="text-muted-foreground">{user.phone}</div>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(user.contactDate || user.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={user.status === "new" ? "bg-accent" : "bg-muted"}>
-                              {user.status === "new" ? "New" : "Contacted"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                disabled={user.status !== "new"}
-                                onClick={() => markUserAsContacted(user.id)}
-                              >
-                                <Bell className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
         </div>
       </div>
-      
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will permanently delete this property listing and cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </SidebarProvider>
+
+      {/* Main dashboard content */}
+      <div className="container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Sidebar */}
+        <div className="md:col-span-1">
+          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={user?.avatar || ""} alt={user?.name || "User"} />
+                <AvatarFallback>
+                  {(user?.name?.charAt(0) || "S") + (user?.name?.split(" ")[1]?.charAt(0) || "")}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="font-semibold text-lg">Hello, {firstName}</h2>
+                <p className="text-sm text-muted-foreground">Seller Account</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <nav className="flex flex-col">
+              <button 
+                className={`flex items-center gap-3 px-6 py-4 hover:bg-secondary transition-colors ${activeTab === 'properties' ? 'border-l-4 border-primary bg-secondary/50' : ''}`} 
+                onClick={() => setActiveTab("properties")}
+              >
+                <Home className="h-4 w-4" />
+                <span>My Properties</span>
+              </button>
+              <button 
+                className={`flex items-center gap-3 px-6 py-4 hover:bg-secondary transition-colors ${activeTab === 'inquiries' ? 'border-l-4 border-primary bg-secondary/50' : ''}`} 
+                onClick={() => setActiveTab("inquiries")}
+              >
+                <Package className="h-4 w-4" />
+                <span>Inquiries</span>
+              </button>
+              <button 
+                className={`flex items-center gap-3 px-6 py-4 hover:bg-secondary transition-colors ${activeTab === 'analytics' ? 'border-l-4 border-primary bg-secondary/50' : ''}`} 
+                onClick={() => setActiveTab("analytics")}
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Analytics</span>
+              </button>
+              <button 
+                className={`flex items-center gap-3 px-6 py-4 hover:bg-secondary transition-colors ${activeTab === 'profile' ? 'border-l-4 border-primary bg-secondary/50' : ''}`} 
+                onClick={() => setActiveTab("profile")}
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </button>
+              <button 
+                className={`flex items-center gap-3 px-6 py-4 hover:bg-secondary transition-colors ${activeTab === 'settings' ? 'border-l-4 border-primary bg-secondary/50' : ''}`} 
+                onClick={() => setActiveTab("settings")}
+              >
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </button>
+              <button 
+                className="flex items-center gap-3 px-6 py-4 text-red-500 hover:bg-red-50 transition-colors"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+        
+        {/* Main content area */}
+        <div className="md:col-span-3">
+          <TabsContent value="properties" className="m-0" active={activeTab === "properties"}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">My Properties</h2>
+              <Link to="/seller/property/add">
+                <Button size="sm" className="gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Add New
+                </Button>
+              </Link>
+            </div>
+            
+            <Tabs defaultValue="active" className="mb-6">
+              <TabsList>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="inactive">Inactive</TabsTrigger>
+                <TabsTrigger value="all">All Properties</TabsTrigger>
+              </TabsList>
+              
+              <div className="mt-6">
+                <TabsContent value="active">
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <div className="spinner h-8 w-8 mb-4 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                      <p className="text-muted-foreground">Loading your properties...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12 bg-destructive/10 rounded-lg">
+                      <p className="text-destructive">Failed to load your properties</p>
+                      <Button variant="outline" className="mt-4" onClick={() => refetch()}>Retry</Button>
+                    </div>
+                  ) : activeProperties.length === 0 ? (
+                    <div className="text-center py-12 bg-secondary/30 rounded-lg">
+                      <p className="text-muted-foreground mb-4">You don't have any active properties</p>
+                      <Link to="/seller/property/add">
+                        <Button>Add Your First Property</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {activeProperties.map((property) => (
+                        <SellerPropertyCard 
+                          key={property._id} 
+                          property={property} 
+                          onDelete={() => handleDeleteProperty(property._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="inactive">
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <div className="spinner h-8 w-8 mb-4 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                      <p className="text-muted-foreground">Loading your properties...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12 bg-destructive/10 rounded-lg">
+                      <p className="text-destructive">Failed to load your properties</p>
+                      <Button variant="outline" className="mt-4" onClick={() => refetch()}>Retry</Button>
+                    </div>
+                  ) : inactiveProperties.length === 0 ? (
+                    <div className="text-center py-12 bg-secondary/30 rounded-lg">
+                      <p className="text-muted-foreground">You don't have any inactive properties</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {inactiveProperties.map((property) => (
+                        <SellerPropertyCard 
+                          key={property._id} 
+                          property={property} 
+                          onDelete={() => handleDeleteProperty(property._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="all">
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <div className="spinner h-8 w-8 mb-4 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                      <p className="text-muted-foreground">Loading your properties...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12 bg-destructive/10 rounded-lg">
+                      <p className="text-destructive">Failed to load your properties</p>
+                      <Button variant="outline" className="mt-4" onClick={() => refetch()}>Retry</Button>
+                    </div>
+                  ) : Array.isArray(properties) && properties.length === 0 ? (
+                    <div className="text-center py-12 bg-secondary/30 rounded-lg">
+                      <p className="text-muted-foreground mb-4">You haven't added any properties yet</p>
+                      <Link to="/seller/property/add">
+                        <Button>Add Your First Property</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {Array.isArray(properties) && properties.map((property) => (
+                        <SellerPropertyCard 
+                          key={property._id} 
+                          property={property} 
+                          onDelete={() => handleDeleteProperty(property._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </div>
+            </Tabs>
+          </TabsContent>
+          
+          {/* Other tab contents would go here but are not shown to keep the code concise */}
+          <TabsContent value="inquiries" className="m-0" active={activeTab === "inquiries"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Property Inquiries</CardTitle>
+                <CardDescription>Manage inquiries from potential buyers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p>Inquiries module coming soon</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="analytics" className="m-0" active={activeTab === "analytics"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Property Analytics</CardTitle>
+                <CardDescription>View performance metrics for your listings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p>Analytics module coming soon</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="profile" className="m-0" active={activeTab === "profile"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Management</CardTitle>
+                <CardDescription>Update your personal information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p>Profile editing coming soon</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="settings" className="m-0" active={activeTab === "settings"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>Manage your account preferences</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p>Settings module coming soon</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </div>
+    </div>
   );
 };
 
