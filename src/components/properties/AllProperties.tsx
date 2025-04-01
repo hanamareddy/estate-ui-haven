@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
-import { PropertyCard } from '@/components/PropertyCard';
-import { Pagination } from '@/components/ui/pagination';
+import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -98,35 +97,40 @@ const AllProperties: React.FC<AllPropertiesProps> = ({
             key={property._id}
             property={property}
             isCompared={compareProperties.some(p => p._id === property._id)}
-            onToggleCompare={() => toggleCompare(property)}
+            onCompare={() => toggleCompare(property)}
           />
         ))}
       </div>
       
       {totalPages > 1 && (
         <div className="mt-12 flex justify-center">
-          <Pagination>
-            <Pagination.Prev 
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-            />
+            >
+              Previous
+            </Button>
             
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Pagination.Item
+              <Button
                 key={page}
-                value={page.toString()}
-                isActive={currentPage === page}
+                variant={currentPage === page ? "default" : "outline"}
                 onClick={() => handlePageChange(page)}
               >
                 {page}
-              </Pagination.Item>
+              </Button>
             ))}
             
-            <Pagination.Next 
+            <Button
+              variant="outline"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-            />
-          </Pagination>
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PropertyCard } from '@/components/PropertyCard';
+import PropertyCard from '@/components/PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface FeaturedPropertiesProps {
@@ -65,7 +65,7 @@ const FeaturedProperties: React.FC<FeaturedPropertiesProps> = ({
           key={property._id} 
           property={property}
           isCompared={compareProperties.some(p => p._id === property._id)}
-          onToggleCompare={() => toggleCompare(property)}
+          onCompare={() => toggleCompare(property)}
           isFeatured
         />
       ))}

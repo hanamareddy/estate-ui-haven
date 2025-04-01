@@ -40,12 +40,12 @@ const PropertyGrid = () => {
   }, []);
   
   // Get properties from API response
-  const properties = data?.properties || [];
+  const properties = data?.data || [];
 
   // Handle adding/removing properties to compare
   const toggleCompare = (property: any) => {
-    if (compareProperties.some(p => p.id === property.id)) {
-      setCompareProperties(compareProperties.filter(p => p.id !== property.id));
+    if (compareProperties.some(p => p._id === property._id)) {
+      setCompareProperties(compareProperties.filter(p => p._id !== property._id));
     } else {
       if (compareProperties.length < 3) {
         setCompareProperties([...compareProperties, property]);
@@ -106,7 +106,7 @@ const PropertyGrid = () => {
         
         <PropertyCompare 
           selectedProperties={compareProperties} 
-          onRemoveProperty={(id) => setCompareProperties(compareProperties.filter(p => p.id !== id))}
+          onRemoveProperty={(id) => setCompareProperties(compareProperties.filter(p => p._id !== id))}
           onClearAll={clearAllCompare}
         />
         
