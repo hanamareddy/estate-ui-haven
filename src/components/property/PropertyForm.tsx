@@ -371,7 +371,7 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                     <FormControl>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" {...field} />
+                        <Input className="pl-10" type="number" placeholder="e.g. 100000"{...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -512,7 +512,7 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                     <FormControl>
                       <div className="relative">
                         <SquareCode className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" min="0" {...field} />
+                        <Input className="pl-10" type="number" placeholder="e.g. 1200" min="0" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
