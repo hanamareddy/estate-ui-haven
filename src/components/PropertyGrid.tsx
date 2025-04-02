@@ -24,8 +24,12 @@ const PropertyGrid = () => {
       try {
         let query = supabase
           .from('properties')
-          .select('*', { count: 'exact' })
-          .range((page - 1) * propertiesPerPage, page * propertiesPerPage - 1);
+          .select('*', { count: 'exact' });
+
+        // Calculate the range based on page and propertiesPerPage
+        const rangeStart = (page - 1) * propertiesPerPage;
+        const rangeEnd = page * propertiesPerPage - 1;
+        query = query.range(rangeStart, rangeEnd);
 
         if (activeStatus !== 'all') {
           query = query.eq('status', activeStatus);
@@ -47,7 +51,7 @@ const PropertyGrid = () => {
 
         if (data) {
           // Add additional data like seller info, amenities, etc.
-          const enhancedData = data.map(property => ({
+          const enhancedData = data.map((property: any) => ({
             ...property,
             seller: {
               name: `Agent ${property.id % 5 + 1}`,
@@ -70,9 +74,13 @@ const PropertyGrid = () => {
           } else {
             setProperties(prevProps => [...prevProps, ...enhancedData]);
           }
-          setHasMore(data.length === propertiesPerPage && properties.length + data.length < (count || 0));
+          
+          // Check if there are more properties to load
+          const totalCount = count || 0;
+          const currentCount = (page === 1 ? 0 : properties.length) + data.length;
+          setHasMore(data.length === propertiesPerPage && currentCount < totalCount);
         }
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: 'Error',
           description: error.message,
@@ -85,29 +93,35 @@ const PropertyGrid = () => {
     };
 
     fetchProperties();
-  }, [page, activeStatus, activeType, location, propertiesPerPage]);
+  }, [page, activeStatus, activeType, location, propertiesPerPage, properties.length]);
 
   const loadMore = () => {
     setPage(prevPage => prevPage + 1);
   };
 
-  const handleLocationChange = (newLocation) => {
+  const handleLocationChange = (newLocation: string) => {
     setPage(1); // Reset to first page when changing location
     setLocation(newLocation);
+  };
+
+  // Create a props object that matches the FilterBar component's expected props
+  const filterBarProps = {
+    onStatusChange: setActiveStatus,
+    onTypeChange: setActiveType,
+    activeStatus: activeStatus,
+    activeType: activeType,
+    location: location,
+    onLocationChange: handleLocationChange
   };
 
   return (
     <div className="container mx-auto px-4 pb-20">
       <FilterBar 
-        onStatusChange={setActiveStatus} 
-        onTypeChange={setActiveType}
-        activeStatus={activeStatus}
-        activeType={activeType}
-        onLocationChange={handleLocationChange}
+        {...filterBarProps}
       />
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {properties.map(property => (
+        {properties.map((property: any) => (
           <PropertyCard 
             key={property.id} 
             propertyData={{

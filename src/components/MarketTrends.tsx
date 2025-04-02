@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from './Navbar';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
@@ -5,6 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import BackToHomeButton from './BackToHomeButton';
+import { Skeleton } from './ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
+import { CompassIcon, TrendingUp } from './icons';
 
 interface PriceData {
   month: string;

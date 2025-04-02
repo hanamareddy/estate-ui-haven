@@ -5,62 +5,10 @@ import Hero from '@/components/Hero';
 import PropertyGrid from '@/components/PropertyGrid';
 
 const Index = () => {
-  // Filter states
-  const [activeStatus, setActiveStatus] = useState('all');
-  const [activeType, setActiveType] = useState('all');
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-  const [bedrooms, setBedrooms] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [areaRange, setAreaRange] = useState({ min: '', max: '' });
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  
-  // Filter handlers
-  const handlePriceChange = (type: 'min' | 'max', value: string) => {
-    setPriceRange({ ...priceRange, [type]: value });
-  };
-  
-  const handleAreaChange = (type: 'min' | 'max', value: string) => {
-    setAreaRange({ ...areaRange, [type]: value });
-  };
-  
-  const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities(prev => 
-      prev.includes(amenity) 
-        ? prev.filter(a => a !== amenity) 
-        : [...prev, amenity]
-    );
-  };
-  
-  const resetFilters = () => {
-    setActiveStatus('all');
-    setActiveType('all');
-    setPriceRange({ min: '', max: '' });
-    setBedrooms('');
-    setBathrooms('');
-    setAreaRange({ min: '', max: '' });
-    setSelectedAmenities([]);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="bottom-right" />
-      <Navbar 
-        activeStatus={activeStatus}
-        activeType={activeType}
-        priceRange={priceRange}
-        bedrooms={bedrooms}
-        bathrooms={bathrooms}
-        areaRange={areaRange}
-        selectedAmenities={selectedAmenities}
-        onStatusChange={setActiveStatus}
-        onTypeChange={setActiveType}
-        handlePriceChange={handlePriceChange}
-        setBedrooms={setBedrooms}
-        setBathrooms={setBathrooms}
-        handleAreaChange={handleAreaChange}
-        toggleAmenity={toggleAmenity}
-        resetFilters={resetFilters}
-      />
+      <Navbar />
       <Hero />
       <PropertyGrid />
       
