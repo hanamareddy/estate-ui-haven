@@ -1,228 +1,270 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, Search, User, Bell, ChevronDown } from 'lucide-react';
-import { Button } from './ui/button';
-import { Sheet, SheetTrigger, SheetContent } from './ui/sheet';
-import NotificationCenter from './NotificationCenter';
-import { FilterSidebar } from './filters/FilterSidebar';
-import mongoAuthService from '@/services/mongoAuthService';
-import useNotifications from '@/hooks/useNotifications';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ActionButton from "./ActionButton";
+import mongoAuthService from "@/services/mongoAuthService";
 
-interface NavbarProps {
-  activeStatus?: string;
-  activeType?: string;
-  priceRange?: { min: string; max: string };
-  bedrooms?: string;
-  bathrooms?: string;
-  areaRange?: { min: string; max: string };
-  selectedAmenities?: string[];
-  onStatusChange?: (status: string) => void;
-  onTypeChange?: (type: string) => void;
-  handlePriceChange?: (type: 'min' | 'max', value: string) => void;
-  setBedrooms?: (value: string) => void;
-  setBathrooms?: (value: string) => void;
-  handleAreaChange?: (type: 'min' | 'max', value: string) => void;
-  toggleAmenity?: (amenity: string) => void;
-  resetFilters?: () => void;
-}
+const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-const Navbar = ({
-  activeStatus = 'all',
-  activeType = 'all',
-  priceRange = { min: '', max: '' },
-  bedrooms = '',
-  bathrooms = '',
-  areaRange = { min: '', max: '' },
-  selectedAmenities = [],
-  onStatusChange = () => {},
-  onTypeChange = () => {},
-  handlePriceChange = () => {},
-  setBedrooms = () => {},
-  setBathrooms = () => {},
-  handleAreaChange = () => {},
-  toggleAmenity = () => {},
-  resetFilters = () => {}
-}: NavbarProps) => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const isAuthenticated = mongoAuthService.isAuthenticated();
-  const userType = isAuthenticated ? mongoAuthService.getUserType() : null;
-  const { unreadCount = 0 } = useNotifications();
-  
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Check for authenticated user
+    const currentUser = mongoAuthService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    }
   }, []);
-  
-  const handleLogout = () => {
+
+  const handleLogout = async () => {
     mongoAuthService.logout();
-    window.location.href = '/';
+    setUser(null);
+    
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+    
+    navigate("/");
   };
-  
-  const closeFilters = () => {
-    // Apply filters logic here
-    setIsFilterOpen(false);
+
+  const handleProfileClick = () => {
+    navigate("/profile");
+  };
+
+  const handleDashboardClick = () => {
+    if (user?.isseller) {
+      navigate("/seller/dashboard");
+    } else {
+      navigate("/buyer/dashboard");
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
-    <header 
-      className={`sticky top-0 z-40 w-full transition-all duration-200 ${
-        isScrolled ? 'bg-white shadow-md' : 'bg-transparent'
-      }`}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-semibold text-sm">RE</span>
+    <nav className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-border shadow-sm">
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <Link to="/" className="flex items-center gap-2 font-semibold text-xl">
+          <div className="bg-accent rounded-md p-1">
+            <Home className="h-5 w-5 text-white" />
+          </div>
+          <span>EstateHub</span>
+        </Link>
+
+        {/* Search Bar on Desktop */}
+        <div className="hidden md:flex flex-1 max-w-md mx-4">
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="w-4 h-4 text-muted-foreground" />
             </div>
-            <span className="font-medium text-lg">EstateHub</span>
-          </Link>
-          
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            <Link to="/" className="text-foreground hover:text-accent transition-colors">Home</Link>
-            <Link to="/" className="text-foreground hover:text-accent transition-colors">Properties</Link>
-            <div className="relative group">
-              <button className="flex items-center text-foreground hover:text-accent transition-colors">
-                Services <ChevronDown className="ml-1 h-4 w-4" />
-              </button>
-              <div className="absolute z-50 left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-2 hidden group-hover:block">
-                <Link to="/market-trends" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Market Trends</Link>
-                <Link to="/property/nearby" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Nearby Properties</Link>
-              </div>
-            </div>
-          </nav>
-          
-          {/* Right side - Auth & Search */}
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon" onClick={() => setIsFilterOpen(true)}>
-              <Search className="h-4 w-4" />
-            </Button>
-            
-            {isAuthenticated ? (
-              <>
-                <Sheet open={notificationOpen} onOpenChange={setNotificationOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="relative">
-                      <Bell className="h-4 w-4" />
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <NotificationCenter />
-                  </SheetContent>
-                </Sheet>
-                
-                <div className="relative group">
-                  <Button variant="ghost" size="icon">
-                    <User className="h-4 w-4" />
-                  </Button>
-                  <div className="absolute z-50 right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-2 hidden group-hover:block">
-                    <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Profile</Link>
-                    
-                    {userType === 'buyer' && (
-                      <Link to="/buyer/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Buyer Dashboard</Link>
-                    )}
-                    
-                    {userType === 'seller' && (
-                      <>
-                        <Link to="/seller/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Seller Dashboard</Link>
-                        <Link to="/seller/property/add" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Add Property</Link>
-                      </>
-                    )}
-                    
-                    <button 
-                      onClick={handleLogout} 
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <Link to="/auth">
-                <Button>Login / Register</Button>
-              </Link>
-            )}
-            
-            {/* Mobile menu button */}
-            <Button variant="outline" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </Button>
+            <input 
+              type="text" 
+              placeholder="Search for properties in India..." 
+              className="w-full py-2 pl-10 pr-4 rounded-full border border-border bg-secondary/30 focus:outline-none focus:ring-1 focus:ring-accent/20"
+            />
           </div>
         </div>
-        
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4">
-            <div className="flex flex-col space-y-4">
-              <Link to="/" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-              <Link to="/" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Properties</Link>
-              <Link to="/market-trends" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Market Trends</Link>
-              <Link to="/property/nearby" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Nearby Properties</Link>
-              {isAuthenticated && (
-                <>
-                  <Link to="/profile" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Profile</Link>
-                  {userType === 'seller' && (
-                    <>
-                      <Link to="/seller/dashboard" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Seller Dashboard</Link>
-                      <Link to="/seller/property/add" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Add Property</Link>
-                    </>
-                  )}
-                  {userType === 'buyer' && (
-                    <Link to="/buyer/dashboard" className="text-foreground hover:text-accent transition-colors" onClick={() => setMobileMenuOpen(false)}>Buyer Dashboard</Link>
-                  )}
-                  <button 
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }} 
-                    className="text-left text-foreground hover:text-accent transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              )}
-            </div>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex md:gap-6 items-center">
+          <Link
+            to="/"
+            className="text-sm font-medium transition-colors hover:text-accent"
+          >
+            Home
+          </Link>
+          <Link
+            to="/#properties"
+            className="text-sm font-medium transition-colors hover:text-accent"
+          >
+            Properties
+          </Link>
+          {user?.isseller && (
+            <Link
+              to="/seller/dashboard"
+              className="text-sm font-medium transition-colors hover:text-accent"
+            >
+              Seller Dashboard
+            </Link>
+          )}
+          <div className="flex items-center gap-2">
+            <ActionButton icon={<Bell className="h-5 w-5" />} variant="ghost" />
+            <ActionButton icon={<Heart className="h-5 w-5" />} variant="ghost" badge="2" />
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.profilePicture} />
+                      <AvatarFallback>{getInitials(user.name || user.email)}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user.name || user.email}</p>
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleProfileClick}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDashboardClick}>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/auth")}>
+                <User className="h-4 w-4" />
+                <span>Sign In</span>
+              </Button>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Mobile Navigation */}
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="icon" aria-label="Menu">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[80vw] px-6">
+            <div className="flex flex-col gap-6 mt-8">
+              {/* User Profile on Mobile */}
+              {user && (
+                <div className="flex items-center space-x-4 mb-6">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.profilePicture} />
+                    <AvatarFallback>{getInitials(user.name || user.email)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{user.name || user.email}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+              )}
+            
+              {/* Search Bar on Mobile */}
+              <div className="relative w-full mb-4">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Search for properties in India..." 
+                  className="w-full py-2 pl-10 pr-4 rounded-full border border-border bg-secondary/30 focus:outline-none focus:ring-1 focus:ring-accent/20"
+                />
+              </div>
+
+              <Link
+                to="/"
+                onClick={() => setIsOpen(false)}
+                className="text-lg font-medium hover:text-accent"
+              >
+                Home
+              </Link>
+              <Link
+                to="/#properties"
+                onClick={() => setIsOpen(false)}
+                className="text-lg font-medium hover:text-accent"
+              >
+                Properties
+              </Link>
+              {user?.isseller && (
+                <Link
+                  to="/seller/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="text-lg font-medium hover:text-accent"
+                >
+                  Seller Dashboard
+                </Link>
+              )}
+              <div className="flex flex-col gap-4 mt-2">
+                <Button 
+                  className="gap-2 w-full justify-center" 
+                  variant="outline"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate("/favorites");
+                  }}
+                >
+                  <Heart className="h-4 w-4" />
+                  <span>Favorites</span>
+                </Button>
+                
+                {user ? (
+                  <>
+                    <Button 
+                      className="gap-2 w-full justify-center" 
+                      variant="outline"
+                      onClick={() => {
+                        setIsOpen(false);
+                        handleDashboardClick();
+                      }}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Button>
+                    <Button 
+                      className="gap-2 w-full justify-center" 
+                      variant="default"
+                      onClick={() => {
+                        setIsOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Log Out</span>
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    className="gap-2 w-full justify-center" 
+                    variant="default"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate("/auth");
+                    }}
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>Sign In</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
-      
-      {/* Filter sidebar */}
-      <FilterSidebar
-        isFilterOpen={isFilterOpen}
-        setIsFilterOpen={setIsFilterOpen}
-        priceRange={priceRange}
-        handlePriceChange={handlePriceChange}
-        bedrooms={bedrooms}
-        setBedrooms={setBedrooms}
-        bathrooms={bathrooms}
-        setBathrooms={setBathrooms}
-        areaRange={areaRange}
-        handleAreaChange={handleAreaChange}
-        selectedAmenities={selectedAmenities}
-        toggleAmenity={toggleAmenity}
-        resetFilters={resetFilters}
-        closeFilters={closeFilters}
-        activeStatus={activeStatus}
-        activeType={activeType}
-        onStatusChange={onStatusChange}
-        onTypeChange={onTypeChange}
-      />
-    </header>
+    </nav>
   );
 };
 

@@ -8,38 +8,42 @@ import PropertyDetailDialog from './property/PropertyDetailDialog';
 import PropertyContactDialog from './property/PropertyContactDialog';
 
 interface PropertyCardProps {
-  id: string;
-  title: string;
-  address: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  area: number;
-  imageUrl: string;
-  type: 'house' | 'apartment' | 'land';
-  status: 'for-sale' | 'for-rent';
-  onCompare?: () => void;
+  propertyData: {
+    _id: string;
+    title: string;
+    address: string;
+    price: number;
+    bedrooms: number;
+    bathrooms: number;
+    sqft: number;
+    images: { url: string }[];
+    type: string;
+    status: string;
+  };
   isCompared?: boolean;
+  onCompare?: () => void;
+  isFeatured?: boolean;
 }
 
 const PropertyCard = ({
-  id,
-  title,
-  address,
-  price,
-  bedrooms,
-  bathrooms,
-  area,
-  imageUrl,
-  type,
-  status,
+  propertyData,
   onCompare,
-  isCompared = false
+  isCompared = false,
+  isFeatured = false
 }: PropertyCardProps) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Map the property type and status to the expected formats
+  const mappedType = (propertyData.type?.toLowerCase() === 'apartment' || propertyData.type?.toLowerCase() === 'house' || propertyData.type?.toLowerCase() === 'land') 
+    ? (propertyData.type.toLowerCase() as 'apartment' | 'house' | 'land') 
+    : 'house';
+  
+  const mappedStatus = propertyData.status?.toLowerCase().includes('sale') 
+    ? 'for-sale' 
+    : 'for-rent';
 
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited);
@@ -66,10 +70,10 @@ const PropertyCard = ({
     <>
       <div className="property-card group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
         <PropertyImage 
-          imageUrl={imageUrl}
-          title={title}
-          status={status}
-          type={type}
+          imageUrl={propertyData.images?.[0]?.url || '/placeholder.svg'} 
+          title={propertyData.title}
+          status={mappedStatus}
+          type={mappedType}
           isFavorited={isFavorited}
           isCompared={isCompared}
           onFavoriteClick={handleFavoriteClick}
@@ -78,14 +82,14 @@ const PropertyCard = ({
         />
         
         <PropertyDetails 
-          title={title}
-          address={address}
-          price={price}
-          type={type}
-          status={status}
-          bedrooms={bedrooms}
-          bathrooms={bathrooms}
-          area={area}
+          title={propertyData.title}
+          address={propertyData.address}
+          price={propertyData.price}
+          type={mappedType}
+          status={mappedStatus}
+          bedrooms={propertyData.bedrooms}
+          bathrooms={propertyData.bathrooms}
+          area={propertyData.sqft}
         />
         
         <div className="px-4 pb-4">
@@ -101,23 +105,23 @@ const PropertyCard = ({
       <PropertyContactDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        title={title}
-        propertyId={id}
+        title={propertyData.title}
+        propertyId={propertyData._id}
         onSuccess={handleInterestSuccess}
       />
 
       <PropertyDetailDialog
         isOpen={isDetailOpen}
         onOpenChange={setIsDetailOpen}
-        title={title}
-        address={address}
-        price={price}
-        bedrooms={bedrooms}
-        bathrooms={bathrooms}
-        area={area}
-        imageUrl={imageUrl}
-        type={type}
-        status={status}
+        title={propertyData.title}
+        address={propertyData.address}
+        price={propertyData.price}
+        bedrooms={propertyData.bedrooms}
+        bathrooms={propertyData.bathrooms}
+        area={propertyData.sqft}
+        imageUrl={propertyData.images?.[0]?.url || '/placeholder.svg'}
+        type={mappedType}
+        status={mappedStatus}
         onInterestClick={handleInterestClick}
       />
     </>

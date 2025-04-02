@@ -56,6 +56,12 @@ const PropertyDetailDialog = ({
     }
   };
 
+  // Format status to display properly with null check
+  const formatStatus = (statusValue: string | undefined) => {
+    if (!statusValue) return '';
+    return statusValue.replace('-', ' ');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
@@ -103,7 +109,7 @@ const PropertyDetailDialog = ({
                 </div>
                 <div className="flex items-center">
                   <span className="text-muted-foreground mr-2">Status:</span>
-                  <span className="font-medium capitalize">{status.replace('-', ' ')}</span>
+                  <span className="font-medium capitalize">{formatStatus(status)}</span>
                 </div>
               </div>
             </div>

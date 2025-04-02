@@ -39,7 +39,7 @@ const PropertyGrid = () => {
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
   
-  // Get properties from API response
+  // Get properties from API response - ensure we have an array
   const properties = data?.properties || [];
 
   // Handle adding/removing properties to compare

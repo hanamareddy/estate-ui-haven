@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -16,13 +15,14 @@ import { format } from 'date-fns';
 import { Calendar, Home, Heart, Bell, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import SavedSearches from '@/components/SavedSearches';
+import BackToHomeButton from '@/components/BackToHomeButton';
 import { toast } from '@/hooks/use-toast';
 import { userAPI } from '@/services/api';
 import { useUserAPI } from '@/hooks/useUserAPI';
 import { usePropertyInquiries } from '@/hooks/usePropertyInquiries';
 import { PropertyInquiry } from '@/hooks/usePropertyInquiries';
 import { formatCurrency } from '@/utils/formatters';
+import SavedSearches from '@/components/SavedSearches';
 
 const BuyerDashboard = () => {
   const navigate = useNavigate();
@@ -57,22 +57,12 @@ const BuyerDashboard = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Buyer Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your property interests and saved searches</p>
-          </div>
-          <Button 
-            onClick={() => navigate('/')}
-            className="mt-4 md:mt-0"
-            variant="default"
-          >
-            Browse Properties
-          </Button>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Buyer Dashboard</h1>
+          <BackToHomeButton />
         </div>
         
         <Tabs defaultValue="favorites" className="w-full">
@@ -280,7 +270,7 @@ const BuyerDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 };
