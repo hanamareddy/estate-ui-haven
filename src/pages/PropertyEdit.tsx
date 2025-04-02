@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -85,7 +86,11 @@ const PropertyEdit = () => {
           </div>
         </div>
         
-        <PropertyForm initialProperty={property} isEditMode={true} />
+        <PropertyForm 
+          onSubmit={(data) => console.log(data)} 
+          isLoading={false}
+          propertyData={property}
+        />
       </div>
     </div>
   );
