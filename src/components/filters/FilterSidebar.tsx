@@ -6,9 +6,10 @@ import { PriceFilter } from './PriceFilter';
 import { BedroomsFilter } from './BedroomsFilter';
 import { BathroomsFilter } from './BathroomsFilter';
 import { PropertySizeFilter } from './PropertySizeFilter';
-import AmenitiesFilter from './AmenitiesFilter';
+import { AmenitiesFilter } from './AmenitiesFilter';
 import { StatusFilter } from './StatusFilter';
 import { TypeFilter } from './TypeFilter';
+import { LocationFilter } from './LocationFilter';
 
 interface FilterSidebarProps {
   isFilterOpen: boolean;
@@ -25,6 +26,8 @@ interface FilterSidebarProps {
   toggleAmenity: (amenity: string) => void;
   resetFilters: () => void;
   closeFilters: () => void;
+  location?: string;
+  onLocationChange?: (location: string) => void;
   activeStatus?: string;
   activeType?: string;
   onStatusChange?: (status: string) => void;
@@ -46,6 +49,8 @@ export const FilterSidebar = ({
   toggleAmenity,
   resetFilters,
   closeFilters,
+  location = '',
+  onLocationChange = () => {},
   activeStatus = 'all',
   activeType = 'all',
   onStatusChange = () => {},
@@ -71,6 +76,11 @@ export const FilterSidebar = ({
         </div>
 
         <div className="space-y-6">
+          <LocationFilter
+            location={location}
+            onLocationChange={onLocationChange}
+          />
+          
           <StatusFilter
             activeStatus={activeStatus}
             onStatusChange={onStatusChange}

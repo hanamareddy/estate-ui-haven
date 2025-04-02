@@ -9,6 +9,7 @@ export interface Notification {
   title: string;
   message: string;
   type: string;
+  priority?: 'high' | 'medium' | 'low'; 
   read: boolean;
   created_at: string;
   user_id: string;
@@ -38,10 +39,18 @@ export const useNotifications = () => {
       const response = await userAPI.getNotifications();
       const notificationsData = response.data;
       
-      setNotifications(notificationsData);
+      // Assign default priority if not present
+      const processedNotifications = notificationsData.map((notification: Notification) => ({
+        ...notification,
+        priority: notification.priority || 
+                 (notification.type === 'alert' ? 'high' : 
+                 notification.type === 'update' ? 'medium' : 'low')
+      }));
+      
+      setNotifications(processedNotifications);
       
       // Count unread notifications
-      const unread = notificationsData.filter((notification: Notification) => !notification.read).length;
+      const unread = processedNotifications.filter((notification: Notification) => !notification.read).length;
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -89,6 +98,7 @@ export const useNotifications = () => {
       toast({
         title: 'Success',
         description: 'All notifications marked as read',
+        duration: 3000,
       });
       
       return true;
@@ -98,9 +108,27 @@ export const useNotifications = () => {
         title: 'Error',
         description: 'Failed to mark notifications as read',
         variant: 'destructive',
+        duration: 5000, // Longer duration for error messages
       });
       return false;
     }
+  };
+
+  // Function to display notification as toast based on priority
+  const showNotification = (notification: Notification) => {
+    const duration = notification.priority === 'high' ? 10000 : // 10 seconds for high priority
+                      notification.priority === 'medium' ? 5000 : // 5 seconds for medium priority
+                      3000; // 3 seconds for low priority
+    
+    toast({
+      title: notification.title,
+      description: notification.message,
+      variant: notification.priority === 'high' ? 'destructive' : 'default',
+      duration: duration,
+    });
+    
+    // Automatically mark as read after showing
+    markAsRead(notification.id);
   };
 
   useEffect(() => {
@@ -126,6 +154,7 @@ export const useNotifications = () => {
     error,
     markAsRead,
     markAllAsRead,
+    showNotification,
     refreshNotifications: fetchNotifications
   };
 };

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import FilterBar from './FilterBar';
 import PropertyCard from './PropertyCard';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 const PropertyGrid = () => {
@@ -16,6 +16,7 @@ const PropertyGrid = () => {
   // Add these state variables for FilterBar
   const [activeStatus, setActiveStatus] = useState('all');
   const [activeType, setActiveType] = useState('all');
+  const [location, setLocation] = useState('');
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -34,6 +35,10 @@ const PropertyGrid = () => {
           query = query.eq('type', activeType);
         }
 
+        if (location) {
+          query = query.or(`address.ilike.%${location}%,city.ilike.%${location}%,state.ilike.%${location}%`);
+        }
+
         const { data, error, count } = await query;
 
         if (error) {
@@ -41,10 +46,29 @@ const PropertyGrid = () => {
         }
 
         if (data) {
+          // Add additional data like seller info, amenities, etc.
+          const enhancedData = data.map(property => ({
+            ...property,
+            seller: {
+              name: `Agent ${property.id % 5 + 1}`,
+              phone: `+91 98765 4${property.id % 10000}`,
+              email: `agent${property.id % 5 + 1}@example.com`,
+            },
+            amenities: [
+              'Power Backup', 
+              'Car Parking', 
+              property.id % 2 === 0 ? 'Swimming Pool' : 'Gym',
+              '24x7 Water Supply',
+              'Security'
+            ],
+            builtYear: 2015 + (property.id % 8),
+            priority: property.id % 3 === 0 ? 'high' : property.id % 3 === 1 ? 'medium' : 'low'
+          }));
+          
           if (page === 1) {
-            setProperties(data);
+            setProperties(enhancedData);
           } else {
-            setProperties(prevProps => [...prevProps, ...data]);
+            setProperties(prevProps => [...prevProps, ...enhancedData]);
           }
           setHasMore(data.length === propertiesPerPage && properties.length + data.length < (count || 0));
         }
@@ -53,6 +77,7 @@ const PropertyGrid = () => {
           title: 'Error',
           description: error.message,
           variant: 'destructive',
+          duration: 5000,
         });
       } finally {
         setLoading(false);
@@ -60,10 +85,15 @@ const PropertyGrid = () => {
     };
 
     fetchProperties();
-  }, [page, activeStatus, activeType, propertiesPerPage]);
+  }, [page, activeStatus, activeType, location, propertiesPerPage]);
 
   const loadMore = () => {
     setPage(prevPage => prevPage + 1);
+  };
+
+  const handleLocationChange = (newLocation) => {
+    setPage(1); // Reset to first page when changing location
+    setLocation(newLocation);
   };
 
   return (
@@ -73,6 +103,7 @@ const PropertyGrid = () => {
         onTypeChange={setActiveType}
         activeStatus={activeStatus}
         activeType={activeType}
+        onLocationChange={handleLocationChange}
       />
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
@@ -89,7 +120,11 @@ const PropertyGrid = () => {
               sqft: property.area,
               images: property.images ? [{url: property.images[0]}] : [{url: '/placeholder.svg'}],
               type: property.type,
-              status: property.status
+              status: property.status,
+              seller: property.seller,
+              amenities: property.amenities,
+              builtYear: property.builtYear,
+              priority: property.priority
             }} 
           />
         ))}
@@ -97,7 +132,7 @@ const PropertyGrid = () => {
 
       {loading && (
         <div className="flex items-center justify-center mt-4">
-          <span className="loading loading-spinner loading-lg"></span>
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 

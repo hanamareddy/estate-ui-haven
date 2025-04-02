@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bed, Bath, Square, User, MapPin, Phone, Mail, Check, Calendar } from 'lucide-react';
+import { Bed, Bath, Square, User, MapPin, Phone, Mail, Check, Calendar, Home, KeyRound } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -71,24 +71,41 @@ const PropertyDetailDialog = ({
     if (!statusValue) return '';
     // Handle both case formats (hyphenated or not)
     return statusValue.includes('-') ? 
-      statusValue.replace(/-/g, ' ') : statusValue;
+      statusValue.split('-').join(' ').replace(/^\w/, (c) => c.toUpperCase()) : 
+      statusValue.replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  // Get icon for amenity
+  const getAmenityIcon = (amenity: string) => {
+    const amenityLower = amenity.toLowerCase();
+    if (amenityLower.includes('power') || amenityLower.includes('electricity')) {
+      return <KeyRound className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('parking')) {
+      return <MapPin className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('lift') || amenityLower.includes('elevator')) {
+      return <Square className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('water')) {
+      return <Bath className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('security')) {
+      return <User className="h-4 w-4 mr-2 text-accent" />;
+    }
+    return <Check className="h-4 w-4 mr-2 text-accent" />;
   };
 
   // Default amenities if none provided
-  const defaultAmenities = [
+  const displayAmenities = amenities.length > 0 ? amenities : [
     'Power Backup',
     'Car Parking',
     'Lift',
-    '24x7 Water Supply'
+    '24x7 Water Supply',
+    'Security'
   ];
-  
-  const displayAmenities = amenities.length > 0 ? amenities : defaultAmenities;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
           <DialogDescription className="flex items-center">
             <MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" />
             {address}
@@ -106,7 +123,10 @@ const PropertyDetailDialog = ({
           
           <div>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Property Details</h3>
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <Home className="h-5 w-5 mr-2 text-accent" />
+                Property Details
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center">
                   <span className="text-muted-foreground mr-2">Price:</span>
@@ -147,7 +167,10 @@ const PropertyDetailDialog = ({
             
             {/* Seller Details Section */}
             <div className="mb-4 p-3 bg-secondary/30 rounded-md">
-              <h3 className="text-lg font-semibold mb-2">Seller Information</h3>
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <User className="h-5 w-5 mr-2 text-accent" />
+                Seller Information
+              </h3>
               <div className="space-y-2">
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-1.5 text-muted-foreground" />
@@ -178,11 +201,14 @@ const PropertyDetailDialog = ({
             </div>
             
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Amenities</h3>
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <Check className="h-5 w-5 mr-2 text-accent" />
+                Amenities
+              </h3>
               <ul className="grid grid-cols-2 gap-2">
                 {displayAmenities.map((amenity, index) => (
                   <li key={index} className="flex items-center">
-                    <Check className="h-4 w-4 mr-2 text-accent" />
+                    {getAmenityIcon(amenity)}
                     {amenity}
                   </li>
                 ))}

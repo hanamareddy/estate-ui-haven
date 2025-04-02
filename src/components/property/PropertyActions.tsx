@@ -9,13 +9,17 @@ interface PropertyActionsProps {
   onViewDetails: () => void;
   onCompare?: () => void;
   isCompared?: boolean;
+  onClose?: () => void;
+  showCloseButton?: boolean;
 }
 
 const PropertyActions = ({
   onInterestClick,
   onViewDetails,
   onCompare,
-  isCompared = false
+  isCompared = false,
+  onClose,
+  showCloseButton = false
 }: PropertyActionsProps) => {
   return (
     <div className="mt-4 flex space-x-3">
@@ -42,6 +46,15 @@ const PropertyActions = ({
           onClick={onViewDetails}
           className="block md:block" // Ensure visible on all devices
         />
+        {showCloseButton && onClose && (
+          <ActionButton
+            icon={<X className="w-4 h-4" />}
+            variant="outline"
+            aria-label="Close"
+            onClick={onClose}
+            className="block" // Ensure visible on all devices
+          />
+        )}
       </div>
     </div>
   );

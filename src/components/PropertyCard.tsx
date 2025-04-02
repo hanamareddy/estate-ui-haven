@@ -25,17 +25,23 @@ interface PropertyCardProps {
       phone?: string;
       email?: string;
     };
+    amenities?: string[];
+    builtYear?: number;
   };
   isCompared?: boolean;
   onCompare?: () => void;
   isFeatured?: boolean;
+  onClose?: () => void;
+  showCloseButton?: boolean;
 }
 
 const PropertyCard = ({
   propertyData,
   onCompare,
   isCompared = false,
-  isFeatured = false
+  isFeatured = false,
+  onClose,
+  showCloseButton = false
 }: PropertyCardProps) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -61,6 +67,8 @@ const PropertyCard = ({
         ? 'This property has been removed from your favorites.' 
         : 'This property has been added to your favorites.',
       variant: isFavorited ? 'destructive' : 'default',
+      // Set different duration based on priority
+      duration: priority === 'high' ? 5000 : (priority === 'medium' ? 4000 : 3000),
     });
   };
 
@@ -92,7 +100,7 @@ const PropertyCard = ({
 
   return (
     <>
-      <div className="property-card group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+      <div className="property-card group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative">
         {priority === 'high' && (
           <div className="bg-accent text-white text-xs px-2 py-1 text-center">
             High Demand Property
@@ -128,6 +136,8 @@ const PropertyCard = ({
             onViewDetails={handleViewDetails}
             onCompare={onCompare}
             isCompared={isCompared}
+            onClose={onClose}
+            showCloseButton={showCloseButton}
           />
         </div>
       </div>
@@ -154,7 +164,8 @@ const PropertyCard = ({
         status={mappedStatus}
         onInterestClick={handleInterestClick}
         seller={propertyData.seller}
-        amenities={['Power Backup', 'Car Parking', 'Lift', '24x7 Water Supply', 'Security']}
+        builtYear={propertyData.builtYear}
+        amenities={propertyData.amenities || ['Power Backup', 'Car Parking', 'Lift', '24x7 Water Supply', 'Security']}
       />
     </>
   );
