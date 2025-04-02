@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import FilterBar from './FilterBar';
 import PropertyCard from './PropertyCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import MobileNavBar from './MobileNavBar';
 
 const PropertyGrid = () => {
   const [properties, setProperties] = useState([]);
@@ -13,7 +13,6 @@ const PropertyGrid = () => {
   const [hasMore, setHasMore] = useState(true);
   const propertiesPerPage = 6;
 
-  // Add these state variables for FilterBar
   const [activeStatus, setActiveStatus] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [location, setLocation] = useState('');
@@ -27,7 +26,6 @@ const PropertyGrid = () => {
           .from('properties')
           .select('*', { count: 'exact' });
 
-        // Calculate the range based on page and propertiesPerPage
         const rangeStart = (page - 1) * propertiesPerPage;
         const rangeEnd = page * propertiesPerPage - 1;
         query = query.range(rangeStart, rangeEnd);
@@ -44,7 +42,6 @@ const PropertyGrid = () => {
           query = query.or(`address.ilike.%${location}%,city.ilike.%${location}%,state.ilike.%${location}%`);
         }
 
-        // Apply sorting based on sortOrder
         switch (sortOrder) {
           case 'price-low':
             query = query.order('price', { ascending: true });
@@ -71,7 +68,6 @@ const PropertyGrid = () => {
         }
 
         if (data) {
-          // Add additional data like seller info, amenities, etc.
           const enhancedData = data.map((property: any) => ({
             ...property,
             seller: {
@@ -96,7 +92,6 @@ const PropertyGrid = () => {
             setProperties(prevProps => [...prevProps, ...enhancedData]);
           }
           
-          // Check if there are more properties to load
           const totalCount = count || 0;
           const currentCount = (page === 1 ? 0 : properties.length) + data.length;
           setHasMore(data.length === propertiesPerPage && currentCount < totalCount);
@@ -121,16 +116,15 @@ const PropertyGrid = () => {
   };
 
   const handleLocationChange = (newLocation: string) => {
-    setPage(1); // Reset to first page when changing location
+    setPage(1);
     setLocation(newLocation);
   };
 
   const handleSortChange = (newSortOrder: string) => {
-    setPage(1); // Reset to first page when changing sort order
+    setPage(1);
     setSortOrder(newSortOrder);
   };
 
-  // Create a props object that matches the FilterBar component's expected props
   const filterBarProps = {
     onStatusChange: setActiveStatus,
     onTypeChange: setActiveType,
@@ -185,6 +179,8 @@ const PropertyGrid = () => {
           </Button>
         </div>
       )}
+      
+      <MobileNavBar />
     </div>
   );
 };
