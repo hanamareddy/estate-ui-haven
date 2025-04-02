@@ -17,6 +17,7 @@ const PropertyGrid = () => {
   const [activeStatus, setActiveStatus] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [location, setLocation] = useState('');
+  const [sortOrder, setSortOrder] = useState('newest');
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -41,6 +42,26 @@ const PropertyGrid = () => {
 
         if (location) {
           query = query.or(`address.ilike.%${location}%,city.ilike.%${location}%,state.ilike.%${location}%`);
+        }
+
+        // Apply sorting based on sortOrder
+        switch (sortOrder) {
+          case 'price-low':
+            query = query.order('price', { ascending: true });
+            break;
+          case 'price-high':
+            query = query.order('price', { ascending: false });
+            break;
+          case 'size-large':
+            query = query.order('area', { ascending: false });
+            break;
+          case 'popular':
+            query = query.order('views', { ascending: false });
+            break;
+          case 'newest':
+          default:
+            query = query.order('created_at', { ascending: false });
+            break;
         }
 
         const { data, error, count } = await query;
@@ -93,7 +114,7 @@ const PropertyGrid = () => {
     };
 
     fetchProperties();
-  }, [page, activeStatus, activeType, location, propertiesPerPage, properties.length]);
+  }, [page, activeStatus, activeType, location, sortOrder, propertiesPerPage, properties.length]);
 
   const loadMore = () => {
     setPage(prevPage => prevPage + 1);
@@ -104,6 +125,11 @@ const PropertyGrid = () => {
     setLocation(newLocation);
   };
 
+  const handleSortChange = (newSortOrder: string) => {
+    setPage(1); // Reset to first page when changing sort order
+    setSortOrder(newSortOrder);
+  };
+
   // Create a props object that matches the FilterBar component's expected props
   const filterBarProps = {
     onStatusChange: setActiveStatus,
@@ -111,7 +137,9 @@ const PropertyGrid = () => {
     activeStatus: activeStatus,
     activeType: activeType,
     location: location,
-    onLocationChange: handleLocationChange
+    onLocationChange: handleLocationChange,
+    sortOrder: sortOrder,
+    onSortChange: handleSortChange
   };
 
   return (

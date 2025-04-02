@@ -14,6 +14,8 @@ export interface FilterBarProps {
   onTypeChange: (type: string) => void;
   location?: string;
   onLocationChange?: (location: string) => void;
+  sortOrder?: string;
+  onSortChange?: (order: string) => void;
 }
 
 const FilterBar = ({ 
@@ -22,7 +24,9 @@ const FilterBar = ({
   onStatusChange, 
   onTypeChange,
   location = '',
-  onLocationChange = () => {}
+  onLocationChange = () => {},
+  sortOrder = 'newest',
+  onSortChange = () => {}
 }: FilterBarProps) => {
   return (
     <div className="bg-white p-4 rounded-lg border border-border">
@@ -35,7 +39,10 @@ const FilterBar = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <SortOptions />
+            <SortOptions 
+              sortOrder={sortOrder} 
+              setSortOrder={onSortChange} 
+            />
             <Button variant="outline" size="sm" className="md:hidden">
               <FilterIcon className="h-4 w-4 mr-2" />
               Filter
