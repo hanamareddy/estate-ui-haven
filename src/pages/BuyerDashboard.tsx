@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,12 +7,14 @@ import BackToHomeButton from '@/components/BackToHomeButton';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 // Fix: Import SavedSearches properly
-import { SavedSearches } from '@/components/SavedSearches';
+import SavedSearches from '@/components/SavedSearches';
 
 interface SavedSearch {
   id: string;
   name: string;
-  filters: any;
+  filters?: any;
+  criteria?: any;
+  location?: string;
 }
 
 const BuyerDashboard = () => {
@@ -29,7 +32,15 @@ const BuyerDashboard = () => {
         if (error) {
           console.error('Error fetching saved searches:', error);
         } else {
-          setSavedSearches(data || []);
+          // Map the data to match SavedSearch interface
+          const mappedSearches = (data || []).map(item => ({
+            id: item.id,
+            name: item.name,
+            filters: item.criteria, // Using criteria as filters
+            location: item.location
+          }));
+          
+          setSavedSearches(mappedSearches);
         }
       } catch (error) {
         console.error('Error fetching saved searches:', error);
@@ -38,15 +49,33 @@ const BuyerDashboard = () => {
 
     const fetchFavoriteProperties = async () => {
       try {
-        // Assuming you have a table for favorite properties
-        const { data, error } = await supabase
-          .from('favorite_properties')
-          .select('*');
+        // Query user_favorites table which connects users to properties
+        const { data: favoriteData, error: favoriteError } = await supabase
+          .from('user_favorites')
+          .select('property_id');
 
-        if (error) {
-          console.error('Error fetching favorite properties:', error);
+        if (favoriteError) {
+          console.error('Error fetching favorite properties:', favoriteError);
+          return;
+        }
+
+        if (favoriteData && favoriteData.length > 0) {
+          // Get the property IDs from favorites
+          const propertyIds = favoriteData.map(fav => fav.property_id);
+          
+          // Now fetch the actual property data
+          const { data: propertiesData, error: propertiesError } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', propertyIds);
+
+          if (propertiesError) {
+            console.error('Error fetching properties:', propertiesError);
+          } else {
+            setFavoriteProperties(propertiesData || []);
+          }
         } else {
-          setFavoriteProperties(data || []);
+          setFavoriteProperties([]);
         }
       } catch (error) {
         console.error('Error fetching favorite properties:', error);
@@ -66,7 +95,7 @@ const BuyerDashboard = () => {
           <BackToHomeButton />
         </div>
         
-        <Tabs defaultvalue="saved-searches" className="w-full">
+        <Tabs defaultValue="saved-searches" className="w-full">
           <TabsList>
             <TabsTrigger value="saved-searches">Saved Searches</TabsTrigger>
             <TabsTrigger value="favorite-properties">Favorite Properties</TabsTrigger>
@@ -75,7 +104,6 @@ const BuyerDashboard = () => {
           <TabsContent value="saved-searches">
             <div className="mt-8">
               <h2 className="text-xl font-bold mb-4">Saved Searches</h2>
-              {/* Fix: Use SavedSearches component properly */}
               <SavedSearches />
             </div>
           </TabsContent>
@@ -84,9 +112,28 @@ const BuyerDashboard = () => {
               <h2 className="text-xl font-bold mb-4">Favorite Properties</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {favoriteProperties.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
+                  <PropertyCard 
+                    key={property.id} 
+                    propertyData={{
+                      _id: property.id,
+                      title: property.title,
+                      address: property.address,
+                      price: property.price,
+                      bedrooms: property.bedrooms,
+                      bathrooms: property.bathrooms,
+                      sqft: property.area,
+                      images: property.images ? [{url: property.images[0]}] : [{url: '/placeholder.svg'}],
+                      type: property.type,
+                      status: property.status
+                    }} 
+                  />
                 ))}
               </div>
+              {favoriteProperties.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">You haven't saved any favorites yet.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="settings">

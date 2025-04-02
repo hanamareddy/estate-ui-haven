@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import FilterBar from './FilterBar';
 import PropertyCard from './PropertyCard';
@@ -40,8 +41,12 @@ const PropertyGrid = () => {
         }
 
         if (data) {
-          setProperties(prevProperties => [...prevProperties, ...data]);
-          setHasMore(data.length === propertiesPerPage && prevProperties.length + data.length < (count || 0));
+          if (page === 1) {
+            setProperties(data);
+          } else {
+            setProperties(prevProps => [...prevProps, ...data]);
+          }
+          setHasMore(data.length === propertiesPerPage && properties.length + data.length < (count || 0));
         }
       } catch (error) {
         toast({
@@ -72,7 +77,21 @@ const PropertyGrid = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
         {properties.map(property => (
-          <PropertyCard key={property.id} property={property} />
+          <PropertyCard 
+            key={property.id} 
+            propertyData={{
+              _id: property.id,
+              title: property.title,
+              address: property.address,
+              price: property.price,
+              bedrooms: property.bedrooms,
+              bathrooms: property.bathrooms,
+              sqft: property.area,
+              images: property.images ? [{url: property.images[0]}] : [{url: '/placeholder.svg'}],
+              type: property.type,
+              status: property.status
+            }} 
+          />
         ))}
       </div>
 

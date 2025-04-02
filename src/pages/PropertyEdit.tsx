@@ -89,7 +89,7 @@ const PropertyEdit = () => {
         <PropertyForm 
           onSubmit={(data) => console.log(data)} 
           isLoading={false}
-          propertyData={property}
+          property={property}
         />
       </div>
     </div>

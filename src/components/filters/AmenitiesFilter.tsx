@@ -10,7 +10,7 @@ interface AmenitiesFilterProps {
   toggleAmenity: (amenity: string) => void;
 }
 
-export const AmenitiesFilter = ({ selectedAmenities, toggleAmenity }: AmenitiesFilterProps) => {
+const AmenitiesFilter = ({ selectedAmenities, toggleAmenity }: AmenitiesFilterProps) => {
   const [customAmenity, setCustomAmenity] = useState('');
   const [showCustomField, setShowCustomField] = useState(false);
 
@@ -115,3 +115,5 @@ export const AmenitiesFilter = ({ selectedAmenities, toggleAmenity }: AmenitiesF
     </div>
   );
 };
+
+export default AmenitiesFilter;

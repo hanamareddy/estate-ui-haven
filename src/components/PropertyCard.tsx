@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import PropertyImage from './property/PropertyImage';
 import PropertyDetails from './property/PropertyDetails';
 import PropertyActions from './property/PropertyActions';
@@ -19,6 +19,12 @@ interface PropertyCardProps {
     images: { url: string }[];
     type: string;
     status: string;
+    priority?: 'high' | 'medium' | 'low';
+    seller?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    };
   };
   isCompared?: boolean;
   onCompare?: () => void;
@@ -45,10 +51,16 @@ const PropertyCard = ({
     ? 'for-sale' 
     : 'for-rent';
 
+  const priority = propertyData.priority || 'medium';
+
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited);
-    toast(isFavorited ? 'Removed from favorites' : 'Added to favorites', {
-      icon: isFavorited ? '🗑️' : '❤️',
+    toast({
+      title: isFavorited ? 'Removed from favorites' : 'Added to favorites',
+      description: isFavorited 
+        ? 'This property has been removed from your favorites.' 
+        : 'This property has been added to your favorites.',
+      variant: isFavorited ? 'destructive' : 'default',
     });
   };
 
@@ -57,9 +69,21 @@ const PropertyCard = ({
   };
 
   const handleInterestSuccess = () => {
-    toast.success('Interest sent to seller!', {
-      description: 'The property owner will contact you soon.',
-    });
+    // Use different toast based on property priority
+    if (priority === 'high') {
+      toast({
+        title: 'High-Priority Property Interest Sent!',
+        description: 'The property owner will contact you very soon. This is a high-demand property.',
+        variant: 'default',
+        duration: 5000,
+      });
+    } else {
+      toast({
+        title: 'Interest sent to seller!',
+        description: 'The property owner will contact you soon.',
+        duration: priority === 'medium' ? 4000 : 3000,
+      });
+    }
   };
 
   const handleViewDetails = () => {
@@ -69,6 +93,12 @@ const PropertyCard = ({
   return (
     <>
       <div className="property-card group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+        {priority === 'high' && (
+          <div className="bg-accent text-white text-xs px-2 py-1 text-center">
+            High Demand Property
+          </div>
+        )}
+        
         <PropertyImage 
           imageUrl={propertyData.images?.[0]?.url || '/placeholder.svg'} 
           title={propertyData.title}
@@ -123,6 +153,8 @@ const PropertyCard = ({
         type={mappedType}
         status={mappedStatus}
         onInterestClick={handleInterestClick}
+        seller={propertyData.seller}
+        amenities={['Power Backup', 'Car Parking', 'Lift', '24x7 Water Supply', 'Security']}
       />
     </>
   );

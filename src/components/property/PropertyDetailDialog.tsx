@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bed, Bath, Square } from 'lucide-react';
+import { Bed, Bath, Square, User, MapPin, Phone, Mail, Check, Calendar } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,13 @@ interface PropertyDetailDialogProps {
   type: 'house' | 'apartment' | 'land';
   status: 'for-sale' | 'for-rent';
   onInterestClick: () => void;
+  seller?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+  };
+  builtYear?: number;
+  amenities?: string[];
 }
 
 const PropertyDetailDialog = ({
@@ -38,7 +45,10 @@ const PropertyDetailDialog = ({
   imageUrl,
   type,
   status,
-  onInterestClick
+  onInterestClick,
+  seller = {},
+  builtYear,
+  amenities = []
 }: PropertyDetailDialogProps) => {
   // Format price in Indian Rupee format
   const formatPrice = (value: number) => {
@@ -59,15 +69,30 @@ const PropertyDetailDialog = ({
   // Format status to display properly with null check
   const formatStatus = (statusValue: string | undefined) => {
     if (!statusValue) return '';
-    return statusValue.replace('-', ' ');
+    // Handle both case formats (hyphenated or not)
+    return statusValue.includes('-') ? 
+      statusValue.replace(/-/g, ' ') : statusValue;
   };
+
+  // Default amenities if none provided
+  const defaultAmenities = [
+    'Power Backup',
+    'Car Parking',
+    'Lift',
+    '24x7 Water Supply'
+  ];
+  
+  const displayAmenities = amenities.length > 0 ? amenities : defaultAmenities;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{address}</DialogDescription>
+          <DialogDescription className="flex items-center">
+            <MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" />
+            {address}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="grid md:grid-cols-2 gap-6 py-4">
@@ -111,6 +136,35 @@ const PropertyDetailDialog = ({
                   <span className="text-muted-foreground mr-2">Status:</span>
                   <span className="font-medium capitalize">{formatStatus(status)}</span>
                 </div>
+                {builtYear && (
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                    <span className="font-medium">Built in {builtYear}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Seller Details Section */}
+            <div className="mb-4 p-3 bg-secondary/30 rounded-md">
+              <h3 className="text-lg font-semibold mb-2">Seller Information</h3>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                  <span className="font-medium">{seller?.name || "Contact property agent"}</span>
+                </div>
+                {seller?.phone && (
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                    <span>{seller.phone}</span>
+                  </div>
+                )}
+                {seller?.email && (
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                    <span>{seller.email}</span>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -126,32 +180,28 @@ const PropertyDetailDialog = ({
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Amenities</h3>
               <ul className="grid grid-cols-2 gap-2">
-                <li className="flex items-center">
-                  <div className="h-2 w-2 rounded-full bg-accent mr-2"></div>
-                  Power Backup
-                </li>
-                <li className="flex items-center">
-                  <div className="h-2 w-2 rounded-full bg-accent mr-2"></div>
-                  Car Parking
-                </li>
-                <li className="flex items-center">
-                  <div className="h-2 w-2 rounded-full bg-accent mr-2"></div>
-                  Lift
-                </li>
-                <li className="flex items-center">
-                  <div className="h-2 w-2 rounded-full bg-accent mr-2"></div>
-                  24x7 Water Supply
-                </li>
+                {displayAmenities.map((amenity, index) => (
+                  <li key={index} className="flex items-center">
+                    <Check className="h-4 w-4 mr-2 text-accent" />
+                    {amenity}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="sm:justify-between">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            className="sm:order-2"
+          >
             Close
           </Button>
-          <Button onClick={onInterestClick}>I'm Interested</Button>
+          <Button onClick={onInterestClick} className="sm:order-1">
+            I'm Interested
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

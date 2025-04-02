@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import ActionButton from '../ActionButton';
+import { Button } from '@/components/ui/button';
 
 interface PropertyActionsProps {
   onInterestClick: () => void;
@@ -18,12 +19,12 @@ const PropertyActions = ({
 }: PropertyActionsProps) => {
   return (
     <div className="mt-4 flex space-x-3">
-      <button 
+      <Button 
         className="flex-1 btn-primary"
         onClick={onInterestClick}
       >
         I'm interested
-      </button>
+      </Button>
       <div className="flex gap-1">
         {onCompare && (
           <ActionButton
@@ -39,6 +40,7 @@ const PropertyActions = ({
           variant="outline"
           aria-label="View details"
           onClick={onViewDetails}
+          className="block md:block" // Ensure visible on all devices
         />
       </div>
     </div>
