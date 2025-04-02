@@ -6,7 +6,7 @@ import PropertyForm from '@/components/property/PropertyForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import BackToHomeButton from '@/components/BackToHomeButton';
+import MobileNavBar from '@/components/MobileNavBar';
 
 const PropertyEdit = () => {
   const { id } = useParams();
@@ -76,14 +76,11 @@ const PropertyEdit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Edit Property</h1>
-          <div className="flex gap-4">
-            <BackToHomeButton />
-          </div>
         </div>
         
         <PropertyForm 
@@ -92,6 +89,7 @@ const PropertyEdit = () => {
           property={property}
         />
       </div>
+      <MobileNavBar />
     </div>
   );
 };

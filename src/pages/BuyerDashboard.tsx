@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PropertyCard from '@/components/PropertyCard';
-import BackToHomeButton from '@/components/BackToHomeButton';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-// Fix: Import SavedSearches properly
 import SavedSearches from '@/components/SavedSearches';
+import MobileNavBar from '@/components/MobileNavBar';
 
 interface SavedSearch {
   id: string;
@@ -32,11 +30,10 @@ const BuyerDashboard = () => {
         if (error) {
           console.error('Error fetching saved searches:', error);
         } else {
-          // Map the data to match SavedSearch interface
           const mappedSearches = (data || []).map(item => ({
             id: item.id,
             name: item.name,
-            filters: item.criteria, // Using criteria as filters
+            filters: item.criteria,
             location: item.location
           }));
           
@@ -49,7 +46,6 @@ const BuyerDashboard = () => {
 
     const fetchFavoriteProperties = async () => {
       try {
-        // Query user_favorites table which connects users to properties
         const { data: favoriteData, error: favoriteError } = await supabase
           .from('user_favorites')
           .select('property_id');
@@ -60,10 +56,8 @@ const BuyerDashboard = () => {
         }
 
         if (favoriteData && favoriteData.length > 0) {
-          // Get the property IDs from favorites
           const propertyIds = favoriteData.map(fav => fav.property_id);
           
-          // Now fetch the actual property data
           const { data: propertiesData, error: propertiesError } = await supabase
             .from('properties')
             .select('*')
@@ -87,12 +81,11 @@ const BuyerDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Buyer Dashboard</h1>
-          <BackToHomeButton />
         </div>
         
         <Tabs defaultValue="saved-searches" className="w-full">
@@ -140,13 +133,13 @@ const BuyerDashboard = () => {
             <div className="mt-8">
               <h2 className="text-xl font-bold mb-4">Settings</h2>
               <div>
-                {/* Add settings content here */}
                 <p>User settings and preferences can be managed here.</p>
               </div>
             </div>
           </TabsContent>
         </Tabs>
       </div>
+      <MobileNavBar />
     </div>
   );
 };

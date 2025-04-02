@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import PropertyCard from '@/components/PropertyCard';
 import { useToast } from '@/hooks/use-toast';
-import BackToHomeButton from '@/components/BackToHomeButton';
+import MobileNavBar from '@/components/MobileNavBar';
 
 const NearbyProperties = () => {
   const [location, setLocation] = useState<string>('');
@@ -109,12 +109,11 @@ const NearbyProperties = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Nearby Properties</h1>
-          <BackToHomeButton />
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-sm mb-8">
@@ -181,6 +180,7 @@ const NearbyProperties = () => {
           </div>
         ) : null}
       </div>
+      <MobileNavBar />
     </div>
   );
 };
