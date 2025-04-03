@@ -2,41 +2,7 @@
 import { useState } from 'react';
 import mongoAuthService from '@/services/mongoAuthService';
 import { toast } from '@/components/ui/use-toast';
-import { PropertyInquiry } from '@/types/propertyInquiry';
-
-interface UserInquiry extends PropertyInquiry {
-  property: {
-    id: string;
-    title: string;
-    price: number;
-    location: string;
-    city: string;
-    state: string;
-    images: string[];
-    type: string;
-    status: string;
-  };
-}
-
-interface SellerInquiry extends PropertyInquiry {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
-  property: {
-    id: string;
-    title: string;
-    price: number;
-    location: string;
-    city: string;
-    state: string;
-    images: string[];
-    type: string;
-    status: string;
-  };
-}
+import { UserInquiry, SellerInquiry } from '@/types/propertyInquiry';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
