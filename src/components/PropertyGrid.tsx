@@ -8,18 +8,21 @@ import FeaturedProperties from './properties/FeaturedProperties';
 import AllProperties from './properties/AllProperties';
 import ScrollToTopButton from './properties/ScrollToTopButton';
 import usePropertyAPI from '@/hooks/usePropertyAPI';
+import { toast } from '@/components/ui/use-toast';
 
 const PropertyGrid = () => {
   const [activeStatus, setActiveStatus] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [compareProperties, setCompareProperties] = useState<any[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [location, setLocation] = useState('');
   const { useProperties } = usePropertyAPI();
   
   // Apply filters
   const filters = {
     ...(activeStatus !== 'all' && { status: activeStatus }),
-    ...(activeType !== 'all' && { type: activeType })
+    ...(activeType !== 'all' && { type: activeType }),
+    ...(location && { location })
   };
   
   // Fetch properties with filters
@@ -50,8 +53,11 @@ const PropertyGrid = () => {
       if (compareProperties.length < 3) {
         setCompareProperties([...compareProperties, property]);
       } else {
-        // Show toast or alert that max 3 properties can be compared
-        alert("You can compare up to 3 properties at a time");
+        toast({
+          title: "Compare limit reached",
+          description: "You can compare up to 3 properties at a time",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -63,6 +69,11 @@ const PropertyGrid = () => {
   const resetFilters = () => {
     setActiveStatus('all');
     setActiveType('all');
+    setLocation('');
+  };
+
+  const handleLocationChange = (value: string) => {
+    setLocation(value);
   };
 
   return (
@@ -85,6 +96,8 @@ const PropertyGrid = () => {
           onTypeChange={setActiveType}
           activeStatus={activeStatus}
           activeType={activeType}
+          location={location}
+          onLocationChange={handleLocationChange}
         />
         
         <FeaturedProperties 

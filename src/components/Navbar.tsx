@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard } from "lucide-react";
+import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard, Building2, Trees, Home as HomeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -44,6 +45,11 @@ const Navbar = () => {
     } else {
       navigate("/buyer/dashboard");
     }
+  };
+
+  const navigateToPropertyType = (type: string) => {
+    navigate(`/?type=${type}`);
+    setIsOpen(false);
   };
 
   const getInitials = (name) => {
@@ -94,6 +100,27 @@ const Navbar = () => {
           >
             Properties
           </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="text-sm font-medium transition-colors hover:text-accent p-1">
+                Property Types
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              <DropdownMenuItem onClick={() => navigateToPropertyType('house')}>
+                <HomeIcon className="mr-2 h-4 w-4" />
+                <span>Houses</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigateToPropertyType('apartment')}>
+                <Building2 className="mr-2 h-4 w-4" />
+                <span>Apartments</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigateToPropertyType('land')}>
+                <Trees className="mr-2 h-4 w-4" />
+                <span>Land</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {user?.isseller && (
             <Link
               to="/seller/dashboard"
@@ -199,6 +226,35 @@ const Navbar = () => {
               >
                 Properties
               </Link>
+              
+              {/* Property Types in Mobile Menu */}
+              <div className="space-y-2">
+                <p className="text-lg font-medium">Property Types</p>
+                <div className="ml-2 space-y-2">
+                  <button 
+                    onClick={() => navigateToPropertyType('house')}
+                    className="flex items-center text-sm hover:text-accent"
+                  >
+                    <HomeIcon className="mr-2 h-4 w-4" />
+                    <span>Houses</span>
+                  </button>
+                  <button 
+                    onClick={() => navigateToPropertyType('apartment')}
+                    className="flex items-center text-sm hover:text-accent"
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>Apartments</span>
+                  </button>
+                  <button 
+                    onClick={() => navigateToPropertyType('land')}
+                    className="flex items-center text-sm hover:text-accent"
+                  >
+                    <Trees className="mr-2 h-4 w-4" />
+                    <span>Land</span>
+                  </button>
+                </div>
+              </div>
+              
               {user?.isseller && (
                 <Link
                   to="/seller/dashboard"
