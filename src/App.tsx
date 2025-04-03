@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/SellerDashboard";
 import PropertyEdit from "./pages/PropertyEdit";
 import PropertyUpload from "./pages/PropertyUpload";
+import PropertyDetail from "./pages/PropertyDetail";
 import MarketTrends from "./components/MarketTrends";
 import Auth from "./pages/Auth";
 import UserProfile from "./pages/UserProfile";
@@ -82,6 +84,7 @@ function App() {
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
             <Route path="/market-trends" element={<MarketTrends />} />
             <Route path="/property/nearby" element={<NearbyProperties />} />
+            <Route path="/property/:id" element={<PropertyDetail />} /> {/* Add new route */}
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             

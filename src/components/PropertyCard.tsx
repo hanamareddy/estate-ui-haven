@@ -1,9 +1,10 @@
+
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import PropertyImage from './property/PropertyImage';
 import PropertyDetails from './property/PropertyDetails';
 import PropertyActions from './property/PropertyActions';
-import PropertyDetailDialog from './property/PropertyDetailDialog';
 import PropertyContactDialog from './property/PropertyContactDialog';
 
 interface PropertyCardProps {
@@ -51,10 +52,10 @@ const PropertyCard = ({
   onClose,
   showCloseButton = false
 }: PropertyCardProps) => {
+  const navigate = useNavigate();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const mappedType = (propertyData.type?.toLowerCase() === 'apartment' || propertyData.type?.toLowerCase() === 'house' || propertyData.type?.toLowerCase() === 'land') 
     ? (propertyData.type.toLowerCase() as 'apartment' | 'house' | 'land') 
@@ -65,8 +66,6 @@ const PropertyCard = ({
     : 'for-rent';
 
   const priority = propertyData.priority || 'medium';
-
-  const allImages = propertyData.images?.map(img => img.url) || [];
 
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited);
@@ -102,7 +101,7 @@ const PropertyCard = ({
   };
 
   const handleViewDetails = () => {
-    setIsDetailOpen(true);
+    navigate(`/property/${propertyData._id}`);
   };
 
   return (
@@ -155,31 +154,6 @@ const PropertyCard = ({
         title={propertyData.title}
         propertyId={propertyData._id}
         onSuccess={handleInterestSuccess}
-      />
-
-      <PropertyDetailDialog
-        isOpen={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        title={propertyData.title}
-        address={propertyData.address}
-        price={propertyData.price}
-        bedrooms={propertyData.bedrooms}
-        bathrooms={propertyData.bathrooms}
-        area={propertyData.sqft}
-        imageUrl={propertyData.images?.[0]?.url || '/placeholder.svg'}
-        images={allImages}
-        type={mappedType}
-        status={mappedStatus}
-        onInterestClick={handleInterestClick}
-        seller={propertyData.seller}
-        builtYear={propertyData.builtYear}
-        amenities={propertyData.amenities}
-        description={propertyData.description}
-        location={propertyData.location}
-        furnishing={propertyData.furnishing}
-        parking={propertyData.parking}
-        facingDirection={propertyData.facingDirection}
-        constructionStatus={propertyData.constructionStatus}
       />
     </>
   );
