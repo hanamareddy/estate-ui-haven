@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import PropertyImage from './property/PropertyImage';
@@ -27,6 +26,15 @@ interface PropertyCardProps {
     };
     amenities?: string[];
     builtYear?: number;
+    description?: string;
+    location?: {
+      latitude?: number;
+      longitude?: number;
+    };
+    furnishing?: string;
+    parking?: number;
+    facingDirection?: string;
+    constructionStatus?: string;
   };
   isCompared?: boolean;
   onCompare?: () => void;
@@ -48,7 +56,6 @@ const PropertyCard = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Map the property type and status to the expected formats
   const mappedType = (propertyData.type?.toLowerCase() === 'apartment' || propertyData.type?.toLowerCase() === 'house' || propertyData.type?.toLowerCase() === 'land') 
     ? (propertyData.type.toLowerCase() as 'apartment' | 'house' | 'land') 
     : 'house';
@@ -59,6 +66,8 @@ const PropertyCard = ({
 
   const priority = propertyData.priority || 'medium';
 
+  const allImages = propertyData.images?.map(img => img.url) || [];
+
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited);
     toast({
@@ -67,7 +76,6 @@ const PropertyCard = ({
         ? 'This property has been removed from your favorites.' 
         : 'This property has been added to your favorites.',
       variant: isFavorited ? 'destructive' : 'default',
-      // Set different duration based on priority
       duration: priority === 'high' ? 5000 : (priority === 'medium' ? 4000 : 3000),
     });
   };
@@ -77,7 +85,6 @@ const PropertyCard = ({
   };
 
   const handleInterestSuccess = () => {
-    // Use different toast based on property priority
     if (priority === 'high') {
       toast({
         title: 'High-Priority Property Interest Sent!',
@@ -160,12 +167,19 @@ const PropertyCard = ({
         bathrooms={propertyData.bathrooms}
         area={propertyData.sqft}
         imageUrl={propertyData.images?.[0]?.url || '/placeholder.svg'}
+        images={allImages}
         type={mappedType}
         status={mappedStatus}
         onInterestClick={handleInterestClick}
         seller={propertyData.seller}
         builtYear={propertyData.builtYear}
-        amenities={propertyData.amenities || ['Power Backup', 'Car Parking', 'Lift', '24x7 Water Supply', 'Security']}
+        amenities={propertyData.amenities}
+        description={propertyData.description}
+        location={propertyData.location}
+        furnishing={propertyData.furnishing}
+        parking={propertyData.parking}
+        facingDirection={propertyData.facingDirection}
+        constructionStatus={propertyData.constructionStatus}
       />
     </>
   );
