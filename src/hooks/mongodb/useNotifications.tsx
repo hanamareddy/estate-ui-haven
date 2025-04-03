@@ -23,7 +23,7 @@ export const useNotifications = () => {
       setLoading(true);
       setError(null);
       
-      // This would typically fetch from an API endpoint instead of Supabase directly
+      // This would typically fetch from an API endpoint
       // For now, we'll return empty data for safety
       setNotifications([]);
       setUnreadCount(0);

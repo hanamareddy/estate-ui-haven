@@ -217,7 +217,7 @@ exports.googleSignIn = async (req, res) => {
 // Verify JWT token and get user
 exports.verifyToken = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password -phoneOtp -emailVerificationToken');
+    const user = await User.findById(req.user._id).select('-password -phoneOtp -emailVerificationToken');
     res.json(user);
   } catch (error) {
     console.error('Token verification error:', error);

@@ -7,7 +7,7 @@ import { BedroomsFilter } from './BedroomsFilter';
 import { BathroomsFilter } from './BathroomsFilter';
 import { PropertySizeFilter } from './PropertySizeFilter';
 import { AmenitiesFilter } from './AmenitiesFilter';
-import { StatusFilter } from './StatusFilter';
+// import { StatusFilter } from './StatusFilter';
 import { TypeFilter } from './TypeFilter';
 import { LocationFilter } from './LocationFilter';
 
@@ -81,11 +81,6 @@ export const FilterSidebar = ({
             onLocationChange={onLocationChange}
           />
           
-          <StatusFilter
-            activeStatus={activeStatus}
-            onStatusChange={onStatusChange}
-          />
-
           <TypeFilter
             activeType={activeType}
             onTypeChange={onTypeChange}
