@@ -33,3 +33,5 @@ export const SortOptions = ({ sortValue, onSortChange }: SortOptionsProps) => {
     </div>
   );
 };
+
+export default SortOptions;

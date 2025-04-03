@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import mongoAuthService from '@/services/mongoAuthService';
 import { toast } from '@/components/ui/use-toast';
 import { PropertyInquiry } from '@/types/propertyInquiry';

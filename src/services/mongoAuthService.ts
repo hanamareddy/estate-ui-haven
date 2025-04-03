@@ -25,7 +25,6 @@ const mongoAuthService = {
     localStorage.removeItem('user');
   },
 
-  // Add missing methods
   login: async (email: string, password: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {

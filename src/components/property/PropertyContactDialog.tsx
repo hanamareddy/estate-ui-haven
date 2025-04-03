@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { authAPI } from "@/services/api";
-import { usePropertyInquiries } from "@/hooks/usePropertyInquiries";
+import usePropertyInquiries from "@/hooks/usePropertyInquiries";
 
 interface PropertyContactDialogProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ const PropertyContactDialog = ({
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactMessage, setContactMessage] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const { createInquiry } = usePropertyInquiries();
@@ -56,18 +57,30 @@ const PropertyContactDialog = ({
             email: user.data.email || '',
             phone: user.data.phone || ''
           });
+          // Set default message for authenticated users
+          setContactMessage("Hello, I'm interested in this property and would like to know more details.");
+          setShowConfirmation(true);
         } else {
           setIsAuthenticated(false);
           setUserDetails(null);
+          setShowConfirmation(false);
         }
       } catch (err) {
         setIsAuthenticated(false);
         setUserDetails(null);
+        setShowConfirmation(false);
       }
     };
     
     if (isOpen) {
       checkAuth();
+    } else {
+      // Reset form when dialog closes
+      setContactMessage('');
+      setContactName('');
+      setContactEmail('');
+      setContactPhone('');
+      setShowConfirmation(false);
     }
   }, [isOpen]);
 
@@ -91,6 +104,7 @@ const PropertyContactDialog = ({
             description: "Please provide your name and email.",
             variant: "destructive"
           });
+          setLoading(false);
           return;
         }
         
@@ -113,6 +127,21 @@ const PropertyContactDialog = ({
       setLoading(false);
     }
   };
+
+  const handleNext = () => {
+    if (!isAuthenticated) {
+      // For non-authenticated users, show confirmation after collecting contact info
+      if (!contactName || !contactEmail) {
+        toast({
+          title: "Missing Information",
+          description: "Please provide your name and email.",
+          variant: "destructive"
+        });
+        return;
+      }
+      setShowConfirmation(true);
+    }
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -121,8 +150,10 @@ const PropertyContactDialog = ({
           <DialogTitle>Contact about {title}</DialogTitle>
           <DialogDescription>
             {isAuthenticated 
-              ? "Your contact details will be shared with the seller."
-              : "Submit your details and the seller will get in touch with you."}
+              ? "Please confirm that you'd like to share your contact details with the seller."
+              : showConfirmation 
+                ? "Please review and confirm your interest in this property."
+                : "Submit your details and message to express interest in this property."}
           </DialogDescription>
         </DialogHeader>
         
@@ -158,7 +189,8 @@ const PropertyContactDialog = ({
               </div>
             </div>
           </div>
-        ) : (
+        ) : !showConfirmation ? (
+          // Contact information form for non-authenticated users
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <label htmlFor="name" className="text-right">
@@ -213,14 +245,64 @@ const PropertyContactDialog = ({
               />
             </div>
           </div>
+        ) : (
+          // Confirmation view for non-authenticated users
+          <div className="py-4">
+            <div className="space-y-4 text-sm">
+              <p>Please confirm the details you're sharing with the seller:</p>
+              <div className="grid grid-cols-4 items-center">
+                <span className="text-right font-medium mr-4">Name:</span>
+                <span className="col-span-3">{contactName}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center">
+                <span className="text-right font-medium mr-4">Email:</span>
+                <span className="col-span-3">{contactEmail}</span>
+              </div>
+              {contactPhone && (
+                <div className="grid grid-cols-4 items-center">
+                  <span className="text-right font-medium mr-4">Phone:</span>
+                  <span className="col-span-3">{contactPhone}</span>
+                </div>
+              )}
+              {contactMessage && (
+                <div className="grid grid-cols-4 items-center">
+                  <span className="text-right font-medium mr-4">Message:</span>
+                  <span className="col-span-3">{contactMessage}</span>
+                </div>
+              )}
+            </div>
+          </div>
         )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Sending..." : (isAuthenticated ? "Send Interest" : "Submit Interest")}
-          </Button>
+          {!isAuthenticated && showConfirmation ? (
+            <>
+              <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+                Back
+              </Button>
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? "Sending..." : "Confirm & Send"}
+              </Button>
+            </>
+          ) : !isAuthenticated ? (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                Cancel
+              </Button>
+              <Button onClick={handleNext}>
+                Next
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? "Sending..." : "Send Interest"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
