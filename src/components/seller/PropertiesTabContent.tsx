@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import SellerPropertyCard from '@/components/SellerPropertyCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Property {
   _id: string;
@@ -29,6 +30,7 @@ interface PropertiesTabContentProps {
   handleToggleStatus: (propertyId: string) => void;
   handleEditProperty: (propertyId: string) => void;
   handleDeleteProperty: (propertyId: string) => void;
+  handleViewAnalytics?: (propertyId: string) => void;
   refetch: () => void;
   searchQuery: string;
   activeFilter: string;
@@ -42,10 +44,13 @@ const PropertiesTabContent = ({
   handleToggleStatus,
   handleEditProperty,
   handleDeleteProperty,
+  handleViewAnalytics,
   refetch,
   searchQuery,
   activeFilter
 }: PropertiesTabContentProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="text-center p-12">
@@ -80,6 +85,10 @@ const PropertiesTabContent = ({
     );
   }
 
+  const defaultViewAnalytics = (propertyId) => {
+    navigate(`/seller/dashboard?tab=analytics&property=${propertyId}`);
+  };
+
   return (
     <div
       className={
@@ -110,6 +119,7 @@ const PropertiesTabContent = ({
           onToggleStatus={handleToggleStatus}
           onEdit={handleEditProperty}
           onDelete={handleDeleteProperty}
+          onViewAnalytics={handleViewAnalytics || defaultViewAnalytics}
         />
       ))}
     </div>

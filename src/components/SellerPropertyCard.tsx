@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Eye, EyeOff, Edit, Trash2, Users, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Edit, Trash2, Users, Heart, ChevronLeft, ChevronRight, ExternalLink, BarChart } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,13 +29,15 @@ interface SellerPropertyCardProps {
   onToggleStatus: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onViewAnalytics?: (id: string) => void;
 }
 
 export default function SellerPropertyCard({ 
   property, 
   onToggleStatus, 
   onEdit,
-  onDelete 
+  onDelete,
+  onViewAnalytics
 }: SellerPropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -183,9 +186,25 @@ export default function SellerPropertyCard({
             </TooltipTrigger>
             <TooltipContent>Delete Listing</TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => onViewAnalytics && onViewAnalytics(property.id)}
+              >
+                <BarChart className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>View Property Analytics</TooltipContent>
+          </Tooltip>
         </div>
         
-        <Button onClick={() => onEdit && onEdit(property.id)}>Manage Listing</Button>
+        <Button onClick={() => window.open(`/property/${property.id}`, '_blank')}>
+          <ExternalLink className="h-4 w-4 mr-2" />
+          View Public Listing
+        </Button>
       </CardFooter>
     </Card>
   );
