@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { toast } from "@/components/ui/use-toast";
+import mongoAuthService from "@/services/mongoAuthService";
+import axios from 'axios';
 
 interface MortgageRate {
   bank: string;
@@ -22,7 +24,7 @@ interface MortgageRate {
   processing_fee?: number;
 }
 
-export const MortgageCalculator = () => {
+const MortgageCalculator = () => {
   const [homePrice, setHomePrice] = useState(5000000);
   const [downPayment, setDownPayment] = useState(1000000);
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
@@ -39,22 +41,18 @@ export const MortgageCalculator = () => {
   
   useEffect(() => {
     const fetchCurrentRates = async () => {
-      //implement fetching from mongodb in bellow code 
-      // try {
-      //   const { data, error } = await 
-      //     .from('mortgage_rates')
-      //     .select('bank, rate, min_loan_amount, max_loan_amount, processing_fee')
-      //     .order('bank', { ascending: true });
-          
-      //   if (error) throw error;
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await axios.get(`${API_BASE_URL}/mortgage/rates`);
         
-      //   if (data && data.length > 0) {
-      //     setCurrentRates(data);
-      //     setInterestRate(data[0].rate);
-      //   }
-      // } catch (error) {
-      //   console.error('Error fetching current rates:', error);
-      // }
+        if (response.data && response.data.length > 0) {
+          setCurrentRates(response.data);
+          setInterestRate(response.data[0].rate);
+        }
+      } catch (error) {
+        console.error('Error fetching current rates:', error);
+        // Fallback to default rates already set
+      }
     };
     
     fetchCurrentRates();
@@ -104,44 +102,50 @@ export const MortgageCalculator = () => {
   };
 
   const applyForLoan = async () => {
-  //   try {
-  //     // const { data: session } = await auth.getSession();
+    try {
+      const user = mongoAuthService.getCurrentUser();
       
-  //     if (!session || !session.session) {
-  //       toast({
-  //         title: "Login Required",
-  //         description: "Please login to apply for a home loan.",
-  //         variant: "destructive"
-  //       });
-  //       return;
-  //     }
+      if (!user) {
+        toast({
+          title: "Login Required",
+          description: "Please login to apply for a home loan.",
+          variant: "destructive"
+        });
+        return;
+      }
       
-  //     const { error } = await 
-  //       .from('loan_applications')
-  //       .insert({
-  //         user_id: session.session.user.id,
-  //         loan_amount: homePrice - downPayment,
-  //         property_value: homePrice,
-  //         down_payment: downPayment,
-  //         interest_rate: interestRate,
-  //         loan_term_years: loanTerm
-  //       });
-        
-  //     if (error) throw error;
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await axios.post(
+        `${API_BASE_URL}/mortgage/apply`,
+        {
+          loan_amount: homePrice - downPayment,
+          property_value: homePrice,
+          down_payment: downPayment,
+          interest_rate: interestRate,
+          loan_term_years: loanTerm
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mongoAuthService.getToken()}`
+          }
+        }
+      );
       
-  //     toast({
-  //       title: "Application Submitted",
-  //       description: "Your loan application has been submitted successfully!",
-  //     });
-  //   } catch (error) {
-  //     console.error('Error submitting loan application:', error);
-  //     toast({
-  //       title: "Application Failed",
-  //       description: "There was an error submitting your application. Please try again.",
-  //       variant: "destructive"
-  //     });
-  //   }
-  // };
+      if (response.status === 201) {
+        toast({
+          title: "Application Submitted",
+          description: "Your loan application has been submitted successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting loan application:', error);
+      toast({
+        title: "Application Failed",
+        description: "There was an error submitting your application. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   
   return (
     <Dialog>
@@ -282,5 +286,5 @@ export const MortgageCalculator = () => {
     </Dialog>
   );
 };
-};
+
 export default MortgageCalculator;

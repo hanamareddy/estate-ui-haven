@@ -4,6 +4,16 @@ import { usePropertyAPI } from '@/hooks/usePropertyAPI';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Property } from '@/types/databaseModels';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle,
+  CardFooter
+} from '@/components/ui/card';
+import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface PropertyEditProps {
   propertyId: string;
@@ -13,8 +23,9 @@ interface PropertyEditProps {
 
 const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) => {
   const { useProperty, useUpdateProperty } = usePropertyAPI();
-  const { data: property, isLoading } = useProperty(propertyId);
+  const { data: property, isLoading, error } = useProperty(propertyId);
   const updateMutation = useUpdateProperty();
+  const navigate = useNavigate();
 
   const handleSubmit = async (data: Partial<Property>) => {
     try {
@@ -25,6 +36,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
         duration: 3000,
       });
       if (onSuccess) onSuccess();
+      else navigate(`/property/${propertyId}`);
     } catch (error) {
       console.error("Error updating property:", error);
       toast({
@@ -36,42 +48,73 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) onCancel();
+    else navigate(`/property/${propertyId}`);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <Card>
+        <CardContent className="flex justify-center items-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
     );
   }
 
-  if (!property) {
+  if (error || !property) {
     return (
-      <div className="p-6 text-center">
-        <p>Property not found or you don't have permission to edit it.</p>
-        <Button onClick={onCancel} className="mt-4">Go Back</Button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+          <CardDescription>
+            Property not found or you don't have permission to edit it.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button onClick={handleCancel} variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Back
+          </Button>
+        </CardFooter>
+      </Card>
     );
   }
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Edit Property: {property.title}</h2>
+    <Card>
+      <CardHeader>
+        <CardTitle>Edit Property: {property.title}</CardTitle>
+        <CardDescription>
+          Update property details to keep your listing accurate and attractive to potential buyers
+        </CardDescription>
+      </CardHeader>
       
-      {/* This is a placeholder for the actual form - you would implement a full form here */}
-      <div className="space-y-4">
-        <p>Property details would be editable here</p>
-        
-        <div className="flex justify-end gap-4 mt-6">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button 
-            onClick={() => handleSubmit({...property, updatedAt: new Date().toISOString()})}
-            disabled={updateMutation.isPending}
-          >
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </Button>
+      <CardContent>
+        {/* This is a placeholder for the actual form - you would implement a full form here */}
+        <div className="space-y-4">
+          <p>Property ID: {property._id}</p>
+          <p>Last Updated: {new Date(property.updatedAt || Date.now()).toLocaleDateString()}</p>
+          
+          <div className="flex justify-end gap-4 mt-6">
+            <Button variant="outline" onClick={handleCancel} disabled={updateMutation.isPending}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleSubmit({...property, updatedAt: new Date().toISOString()})}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? 
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 
+                <><Save className="mr-2 h-4 w-4" /> Save Changes</>
+              }
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

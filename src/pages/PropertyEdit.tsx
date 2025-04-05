@@ -1,21 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PropertyForm from '@/components/property/PropertyForm';
-import usePropertyAPI from '@/hooks/usePropertyAPI';
-
 import { toast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
 import MobileNavBar from '@/components/MobileNavBar';
+import usePropertyAPI from '@/hooks/usePropertyAPI';
+import mongoAuthService from '@/services/mongoAuthService';
 
 const PropertyEdit = () => {
   const { id } = useParams();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { useUpdateProperty,useProperty} = usePropertyAPI();
-
+  const { useUpdateProperty, useProperty } = usePropertyAPI();
+  const updateMutation = useUpdateProperty();
+  
   useEffect(() => {
     const fetchProperty = async () => {
       if (!id) {
@@ -30,7 +30,7 @@ const PropertyEdit = () => {
 
       setLoading(true);
       try {
-         const { data: data, isLoading, error } = useProperty(id || '');
+        const { data, isLoading, error } = useProperty(id);
 
         if (error) {
           throw error;
@@ -52,7 +52,7 @@ const PropertyEdit = () => {
           description: 'Failed to load property details.',
           variant: 'destructive',
         });
-        console.log(error.message);
+        console.error(error);
         navigate('/seller/dashboard');
       } finally {
         setLoading(false);
@@ -62,10 +62,49 @@ const PropertyEdit = () => {
     fetchProperty();
   }, [id, navigate]);
 
+  const handlePropertyUpdate = async (updatedData) => {
+    try {
+      // Ensure user is authenticated
+      const user = mongoAuthService.getCurrentUser();
+      if (!user || !user.isseller) {
+        toast({
+          title: 'Permission Denied',
+          description: 'Only sellers can update properties.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Update the property
+      await updateMutation.mutateAsync({ 
+        id, 
+        data: {
+          ...updatedData,
+          updatedAt: new Date().toISOString(),
+          seller: user.id
+        }
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Property updated successfully!',
+      });
+      
+      navigate('/seller/dashboard');
+    } catch (error) {
+      console.error('Error updating property:', error);
+      toast({
+        title: 'Update Failed',
+        description: error.response?.data?.message || 'An error occurred while updating the property.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <span className="loading loading-spinner loading-lg"></span>
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -80,11 +119,14 @@ const PropertyEdit = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Edit Property</h1>
+          <p className="text-muted-foreground mt-2">
+            Update your property listing details and images
+          </p>
         </div>
         
         <PropertyForm 
-          onSubmit={(data) => console.log(data)} 
-          isLoading={false}
+          onSubmit={handlePropertyUpdate} 
+          isLoading={updateMutation.isPending}
           property={property}
         />
       </div>
