@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 interface PropertyEditProps {
   propertyId: string;
@@ -22,10 +23,33 @@ interface PropertyEditProps {
 }
 
 const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) => {
-  const { useProperty, useUpdateProperty } = usePropertyAPI();
-  const { data: property, isLoading, error } = useProperty(propertyId);
+  const { getProperty, useUpdateProperty } = usePropertyAPI();
   const updateMutation = useUpdateProperty();
   const navigate = useNavigate();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getProperty(propertyId);
+        if (response && response.data) {
+          setProperty(response.data);
+        } else {
+          throw new Error("Property not found");
+        }
+      } catch (err) {
+        console.error("Error fetching property:", err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [propertyId, getProperty]);
 
   const handleSubmit = async (data: Partial<Property>) => {
     try {

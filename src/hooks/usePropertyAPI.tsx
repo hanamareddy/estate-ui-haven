@@ -19,7 +19,7 @@ export const usePropertyAPI = () => {
     });
   };
   
-  // Get a single property by ID
+  // Get a single property by ID - as a hook
   const useProperty = (id: string) => {
     return useQuery({
       queryKey: ['property', id],
@@ -29,6 +29,16 @@ export const usePropertyAPI = () => {
       },
       enabled: !!id,
     });
+  };
+  
+  // Get a single property - as a function (not a hook)
+  const getProperty = async (id: string) => {
+    try {
+      return await propertyAPI.getProperty(id);
+    } catch (error) {
+      console.error("Error fetching property:", error);
+      throw error;
+    }
   };
   
   // Create a new property
@@ -102,29 +112,22 @@ export const usePropertyAPI = () => {
   };
   
   // Get properties for the current authenticated seller
- // Custom hook to fetch properties listed by the current seller
-const useSellerProperties = () => { 
-  return useQuery({
-    // Unique key for caching and refetching seller's properties
-    queryKey: ['sellerProperties'],
+  const useSellerProperties = () => { 
+    return useQuery({
+      queryKey: ['sellerProperties'],
+      queryFn: async () => {
+        console.log("Fetching seller properties..."); // Debug: Start of API call
+        const response = await propertyAPI.getSellerProperties(); // API call to get seller's properties
+        console.log("Seller properties fetched:", response.data); // Debug: Log the fetched data
+        return response.data; // Return data directly
+      },
+    });
+  };
 
-    // Function that actually fetches the data
-    queryFn: async () => {
-      console.log("Fetching seller properties..."); // Debug: Start of API call
-
-      const response = await propertyAPI.getSellerProperties(); // API call to get seller's properties
-      
-      console.log("Seller properties fetched:", response.data); // Debug: Log the fetched data
-
-      return response.data; // Return data directly
-    },
-  });
-};
-
-  
   return {
     useProperties,
     useProperty,
+    getProperty,
     useCreateProperty,
     useUpdateProperty,
     useDeleteProperty,

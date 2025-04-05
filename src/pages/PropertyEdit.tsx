@@ -7,13 +7,14 @@ import { toast } from '@/components/ui/use-toast';
 import MobileNavBar from '@/components/MobileNavBar';
 import usePropertyAPI from '@/hooks/usePropertyAPI';
 import mongoAuthService from '@/services/mongoAuthService';
+import { Loader2 } from 'lucide-react';
 
 const PropertyEdit = () => {
   const { id } = useParams();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { useUpdateProperty, useProperty } = usePropertyAPI();
+  const { useUpdateProperty, getProperty } = usePropertyAPI();
   const updateMutation = useUpdateProperty();
   
   useEffect(() => {
@@ -30,14 +31,9 @@ const PropertyEdit = () => {
 
       setLoading(true);
       try {
-        const { data, isLoading, error } = useProperty(id);
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          setProperty(data);
+        const response = await getProperty(id);
+        if (response && response.data) {
+          setProperty(response.data);
         } else {
           toast({
             title: 'Error',
@@ -60,7 +56,7 @@ const PropertyEdit = () => {
     };
 
     fetchProperty();
-  }, [id, navigate]);
+  }, [id, navigate, getProperty]);
 
   const handlePropertyUpdate = async (updatedData) => {
     try {
