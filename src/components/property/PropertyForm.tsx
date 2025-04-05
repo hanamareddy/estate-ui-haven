@@ -1,726 +1,541 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Upload, Plus, X, Home, MapPin, DollarSign, Bed, Bath, SquareCode, Info, Zap, Hammer, Landmark } from "lucide-react";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/components/ui/use-toast";
-import cloudinaryService from "@/services/cloudinaryService";
 
-const propertyFormSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  address: z.string().min(5, "Address is required"),
-  price: z.coerce.number().positive("Price must be greater than 0"),
-  bedrooms: z.coerce.number().int().min(0, "Number of bedrooms must be 0 or greater"),
-  bathrooms: z.coerce.number().min(0, "Number of bathrooms must be 0 or greater"),
-  sqft: z.coerce.number().positive("Area must be greater than 0"),
-  type: z.enum(["House", "Apartment", "Land", "Villa", "Builder Floor", "Farmhouse", "PG"]),
-  status: z.enum(["active", "inactive"]),
-  propertyStatus: z.enum(["Ready to Move", "Under Construction", "Resale"]),
-  description: z.string().optional(),
-  state: z.string().min(1, "State is required"),
-  city: z.string().min(1, "City is required"),
-  pincode: z.string().min(6, "Pincode must be at least 6 characters"),
-  furnished: z.enum(["Fully Furnished", "Semi Furnished", "Unfurnished"]).optional(),
-  constructionYear: z.string().optional(),
-  sellerContact: z.string().min(10, "Contact number is required"),
-  sellerEmail: z.string().email("Invalid email address").optional(),
-});
+import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Upload, X, Plus, Image as ImageIcon } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { validatePropertyForm } from '@/utils/validationUtils';
+import axios from 'axios';
 
-type PropertyFormValues = z.infer<typeof propertyFormSchema>;
-
-interface PropertyImage {
-  url: string;
-  public_id: string;
+// Define the property interface
+interface PropertyFormData {
+  title: string;
+  description: string;
+  price: number;
+  address: string;
+  type: string;
+  status: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  sqft?: number;
+  amenities?: string[];
+  images?: string[];
+  [key: string]: any;
 }
 
 interface PropertyFormProps {
-  property?: {
-    id?: string;
-    title: string;
-    address: string;
-    price: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    sqft: number;
-    images?: PropertyImage[] | string[];
-    type: string;
-    status: string;
-    propertyStatus?: string;
-    description?: string;
-    state?: string;
-    city?: string;
-    pincode?: string;
-    furnished?: string;
-    constructionYear?: string;
-    sellerContact?: string;
-    sellerEmail?: string;
-    amenities?: string[];
-  };
-  onSubmit: (data: PropertyFormValues & { images: PropertyImage[]; amenities: string[] }) => void;
-  isLoading?: boolean;
+  onSubmit: (data: PropertyFormData) => void;
+  isLoading: boolean;
+  property?: any;
 }
 
-const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormProps) => {
-  const normalizeImages = (images?: PropertyImage[] | string[]): PropertyImage[] => {
-    if (!images) return [];
-    
-    return images.map(img => {
-      if (typeof img === 'string') {
-        return {
-          url: img,
-          public_id: `legacy_${Math.random().toString(36).substring(2, 15)}`
-        };
+const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState<PropertyFormData>({
+    title: '',
+    description: '',
+    price: 0,
+    address: '',
+    type: 'house',
+    status: 'active',
+    bedrooms: 0,
+    bathrooms: 0,
+    sqft: 0,
+    amenities: [],
+    images: [],
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  // Initialize form with existing property data if in edit mode
+  useEffect(() => {
+    if (property) {
+      setFormData({
+        title: property.title || '',
+        description: property.description || '',
+        price: property.price || 0,
+        address: property.address || '',
+        type: property.type || 'house',
+        status: property.status || 'active',
+        bedrooms: property.bedrooms || 0,
+        bathrooms: property.bathrooms || 0,
+        sqft: property.sqft || 0,
+        amenities: property.amenities || [],
+        images: property.images || [],
+      });
+      
+      if (property.images && property.images.length > 0) {
+        setPreviewImages(property.images);
       }
-      return img as PropertyImage;
+    }
+  }, [property]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    let parsedValue = value;
+    
+    // Convert number inputs
+    if (type === 'number') {
+      parsedValue = value === '' ? 0 : parseFloat(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: parsedValue }));
+    
+    // Clear error for this field if it exists
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+  
+  const handleSwitchChange = (name: string, checked: boolean) => {
+    setFormData(prev => ({ ...prev, [name]: checked ? 'active' : 'inactive' }));
+  };
+
+  const handleAmenityToggle = (amenity: string) => {
+    setFormData(prev => {
+      const amenities = prev.amenities || [];
+      
+      if (amenities.includes(amenity)) {
+        return { ...prev, amenities: amenities.filter(a => a !== amenity) };
+      } else {
+        return { ...prev, amenities: [...amenities, amenity] };
+      }
     });
   };
 
-  const [images, setImages] = useState<PropertyImage[]>(normalizeImages(property?.images));
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [amenities, setAmenities] = useState<string[]>(property?.amenities || []);
-  const [removedImages, setRemovedImages] = useState<string[]>([]);
-
-  const form = useForm<PropertyFormValues>({
-    resolver: zodResolver(propertyFormSchema),
-    defaultValues: property ? {
-      title: property.title || "",
-      address: property.address || "",
-      price: property.price || undefined,
-      bedrooms: property.bedrooms || undefined,
-      bathrooms: property.bathrooms || undefined,
-      sqft: property.sqft || undefined,
-      type: property.type as "House" | "Apartment" | "Land" | "Villa" | "Builder Floor" | "Farmhouse" | "PG",
-      status: property.status as "active" | "inactive",
-      propertyStatus: (property.propertyStatus as "Ready to Move" | "Under Construction" | "Resale") || "Ready to Move",
-      description: property.description || "",
-      state: property.state || "",
-      city: property.city || "",
-      pincode: property.pincode || "",
-      furnished: (property.furnished as "Fully Furnished" | "Semi Furnished" | "Unfurnished") || "Unfurnished",
-      constructionYear: property.constructionYear || "",
-      sellerContact: property.sellerContact || "",
-      sellerEmail: property.sellerEmail || "",
-    } : {
-      title: "",
-      address: "",
-      price: undefined,
-      bedrooms: undefined,
-      bathrooms: undefined,
-      sqft: undefined,
-      type: "House",
-      status: "active",
-      propertyStatus: "Ready to Move",
-      description: "",
-      state: "",
-      city: "",
-      pincode: "",
-      furnished: "Unfurnished",
-      constructionYear: "",
-      sellerContact: "",
-      sellerEmail: "",
-    }
-  });
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!e.target.files || e.target.files.length === 0) return;
     
-    setUploadingImage(true);
+    // Validate file types and size
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+    
+    Array.from(e.target.files).forEach(file => {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        invalidFiles.push(`${file.name} (not an image)`);
+        return;
+      }
+      
+      // Check file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        invalidFiles.push(`${file.name} (exceeds 5MB)`);
+        return;
+      }
+      
+      validFiles.push(file);
+    });
+    
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid files",
+        description: `${invalidFiles.join(', ')} cannot be uploaded.`,
+        variant: "destructive"
+      });
+    }
+    
+    // Add valid files to state
+    setImageFiles(prev => [...prev, ...validFiles]);
+    
+    // Create preview URLs
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const uploadImages = async () => {
+    if (imageFiles.length === 0) return [];
+    
+    setUploadingImages(true);
     
     try {
-      const fileArray = Array.from(files);
-      
-      const uploadedImages = await cloudinaryService.uploadImages(fileArray);
-      
-      setImages(prev => [...prev, ...uploadedImages]);
-      toast({
-        title: "Images uploaded",
-        description: `${uploadedImages.length} image(s) successfully uploaded`,
+      const formData = new FormData();
+      imageFiles.forEach(file => {
+        formData.append('images', file);
       });
+      
+      const response = await axios.post(`${API_URL}/upload/multiple`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.data.success) {
+        setImageFiles([]);
+        return response.data.images.map((img: { url: string }) => img.url);
+      } else {
+        throw new Error('Image upload failed');
+      }
     } catch (error) {
-      console.error("Error uploading images:", error);
+      console.error('Error uploading images:', error);
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your images",
-        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive"
       });
+      return [];
     } finally {
-      setUploadingImage(false);
-      e.target.value = '';
+      setUploadingImages(false);
     }
   };
 
   const removeImage = (index: number) => {
-    const imageToRemove = images[index];
+    setPreviewImages(prev => prev.filter((_, i) => i !== index));
     
-    if (imageToRemove.public_id && !imageToRemove.public_id.startsWith('legacy_')) {
-      setRemovedImages(prev => [...prev, imageToRemove.public_id]);
+    // If it's an existing image from the server
+    if (index < (formData.images?.length || 0)) {
+      setFormData(prev => ({
+        ...prev,
+        images: (prev.images || []).filter((_, i) => i !== index)
+      }));
     }
     
-    setImages(prev => prev.filter((_, i) => i !== index));
+    // If it's a newly added image from imageFiles
+    if (index >= (formData.images?.length || 0)) {
+      const adjustedIndex = index - (formData.images?.length || 0);
+      setImageFiles(prev => prev.filter((_, i) => i !== adjustedIndex));
+    }
   };
 
-  const toggleAmenity = (amenity: string) => {
-    setAmenities(prev => 
-      prev.includes(amenity) 
-        ? prev.filter(a => a !== amenity) 
-        : [...prev, amenity]
-    );
-  };
-
-  const handleSubmit = async (values: PropertyFormValues) => {
-    if (images.length === 0) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    const validation = validatePropertyForm(formData);
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      
+      // Scroll to the first error
+      const firstErrorField = Object.keys(validation.errors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
       toast({
-        title: "Error",
-        description: "Please add at least one image",
-        variant: "destructive",
+        title: "Validation Error",
+        description: "Please correct the errors in the form.",
+        variant: "destructive"
       });
+      
       return;
     }
     
-    onSubmit({ 
-      ...values, 
-      images,
-      amenities,
-      ...(property?.id && removedImages.length > 0 ? { removedImages } : {})
-    });
+    try {
+      // Upload images if there are any new ones
+      let allImages = [...(formData.images || [])];
+      
+      if (imageFiles.length > 0) {
+        const uploadedImageUrls = await uploadImages();
+        allImages = [...allImages, ...uploadedImageUrls];
+      }
+      
+      // Submit the complete form data
+      const finalFormData = {
+        ...formData,
+        images: allImages
+      };
+      
+      await onSubmit(finalFormData);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting the form. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
-
-  const getCitiesByState = (state: string) => {
-    const cityMap: Record<string, string[]> = {
-      'delhi': ['New Delhi', 'Delhi NCR'],
-      'maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Navi Mumbai'],
-      'karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Hubli'],
-      'tamil-nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem'],
-      'telangana': ['Hyderabad', 'Secunderabad', 'Warangal'],
-      'kerala': ['Kochi', 'Trivandrum', 'Kozhikode', 'Thrissur'],
-      'gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot'],
-      'uttar-pradesh': ['Noida', 'Ghaziabad', 'Lucknow', 'Kanpur', 'Agra'],
-      'punjab': ['Chandigarh', 'Ludhiana', 'Amritsar', 'Jalandhar'],
-      'west-bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Siliguri'],
-      'rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota'],
-    };
-    
-    return cityMap[state] || ['Other'];
-  };
-
-  const selectedState = form.watch('state');
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4 md:col-span-2">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Info className="h-5 w-5 text-muted-foreground" />
-              Basic Information
-            </h3>
-            
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Property Title</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Home className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input className="pl-10" placeholder="e.g. Modern 3BHK Apartment in Powai" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="delhi">Delhi</SelectItem>
-                        <SelectItem value="maharashtra">Maharashtra</SelectItem>
-                        <SelectItem value="karnataka">Karnataka</SelectItem>
-                        <SelectItem value="tamil-nadu">Tamil Nadu</SelectItem>
-                        <SelectItem value="telangana">Telangana</SelectItem>
-                        <SelectItem value="kerala">Kerala</SelectItem>
-                        <SelectItem value="gujarat">Gujarat</SelectItem>
-                        <SelectItem value="uttar-pradesh">Uttar Pradesh</SelectItem>
-                        <SelectItem value="punjab">Punjab</SelectItem>
-                        <SelectItem value="west-bengal">West Bengal</SelectItem>
-                        <SelectItem value="rajasthan">Rajasthan</SelectItem>
-                        <SelectItem value="other">Other States</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <form onSubmit={handleSubmit} className="space-y-8 pb-10">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">Property Title <span className="text-red-500">*</span></Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g. Modern 3 Bedroom Apartment"
+                className={errors.title ? "border-red-500" : ""}
               />
-              
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {selectedState && getCitiesByState(selectedState).map(city => (
-                          <SelectItem key={city} value={city.toLowerCase()}>
-                            {city}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="pincode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PIN Code</FormLabel>
-                    <FormControl>
-                      <Input type="text" placeholder="e.g. 400001" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
             </div>
             
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Detailed Address</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input className="pl-10" placeholder="e.g. 123, ABC Society, XYZ Road" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Describe your property in detail..."
+                rows={5}
+                className={errors.description ? "border-red-500" : ""}
+              />
+              {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">Property Details</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (USD) <span className="text-red-500">*</span></Label>
+              <Input
+                id="price"
                 name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price (₹)</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" placeholder="e.g. 100000"{...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                type="number"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="e.g. 250000"
+                className={errors.price ? "border-red-500" : ""}
               />
-              
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Property Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="House">House</SelectItem>
-                        <SelectItem value="Apartment">Apartment</SelectItem>
-                        <SelectItem value="Villa">Villa</SelectItem>
-                        <SelectItem value="Builder Floor">Builder Floor</SelectItem>
-                        <SelectItem value="Farmhouse">Farmhouse</SelectItem>
-                        <SelectItem value="PG">PG/Hostel</SelectItem>
-                        <SelectItem value="Land">Land</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Listing Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="propertyStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Property Status</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select property status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Ready to Move">Ready to Move</SelectItem>
-                      <SelectItem value="Under Construction">Under Construction</SelectItem>
-                      <SelectItem value="Resale">Resale</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="space-y-4 md:col-span-2">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              Property Details
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="bedrooms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bedrooms</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Bed className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          className="pl-10" 
-                          type="number" 
-                          min="0" 
-                          placeholder="Number of bedrooms"
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="bathrooms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bathrooms</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Bath className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          className="pl-10" 
-                          type="number" 
-                          min="0" 
-                          step="0.5" 
-                          placeholder="Number of bathrooms"
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="sqft"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Square Feet</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <SquareCode className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" placeholder="e.g. 1200" min="0" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="furnished"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Furnishing Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select furnishing status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Fully Furnished">Fully Furnished</SelectItem>
-                        <SelectItem value="Semi Furnished">Semi Furnished</SelectItem>
-                        <SelectItem value="Unfurnished">Unfurnished</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="constructionYear"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year of Construction</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Landmark className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="text" placeholder="e.g. 2020" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
             </div>
             
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter property description..." 
-                      className="min-h-[120px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Zap className="h-5 w-5 text-muted-foreground" />
-              Amenities
-            </h3>
+            <div className="space-y-2">
+              <Label htmlFor="address">Property Address <span className="text-red-500">*</span></Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter full address"
+                className={errors.address ? "border-red-500" : ""}
+              />
+              {errors.address && <p className="text-red-500 text-sm">{errors.address}</p>}
+            </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {['Lift', 'Car Parking', 'Power Backup', 'Swimming Pool', 'Gym', 'Garden', 'Security', 'Club House', 
-                'Gated Community', 'Kids Play Area', 'Rainwater Harvesting', 'Indoor Games', 'Gas Pipeline',
-                '24x7 Water Supply', 'Wifi Connectivity', 'CCTV', 'Fire Safety', 'Shopping Center', 'Temple'].map((amenity) => (
-                <div key={amenity} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`amenity-${amenity}`}
-                    checked={amenities.includes(amenity)} 
-                    onCheckedChange={() => toggleAmenity(amenity)}
+            <div className="space-y-2">
+              <Label htmlFor="type">Property Type <span className="text-red-500">*</span></Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => handleSelectChange('type', value)}
+              >
+                <SelectTrigger id="type" className={errors.type ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="house">House</SelectItem>
+                  <SelectItem value="apartment">Apartment</SelectItem>
+                  <SelectItem value="condo">Condo</SelectItem>
+                  <SelectItem value="land">Land</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.type && <p className="text-red-500 text-sm">{errors.type}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="status">
+                <div className="flex items-center space-x-2">
+                  <span>Active Listing</span>
+                  <Switch
+                    id="status"
+                    checked={formData.status === 'active'}
+                    onCheckedChange={(checked) => handleSwitchChange('status', checked)}
                   />
-                  <label
-                    htmlFor={`amenity-${amenity}`}
-                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
+                </div>
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {formData.status === 'active' 
+                  ? 'Your property will be visible to all users' 
+                  : 'Your property will be hidden from public view'}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="bedrooms">Bedrooms</Label>
+              <Input
+                id="bedrooms"
+                name="bedrooms"
+                type="number"
+                value={formData.bedrooms}
+                onChange={handleChange}
+                min="0"
+                step="1"
+                className={errors.bedrooms ? "border-red-500" : ""}
+              />
+              {errors.bedrooms && <p className="text-red-500 text-sm">{errors.bedrooms}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="bathrooms">Bathrooms</Label>
+              <Input
+                id="bathrooms"
+                name="bathrooms"
+                type="number"
+                value={formData.bathrooms}
+                onChange={handleChange}
+                min="0"
+                step="0.5"
+                className={errors.bathrooms ? "border-red-500" : ""}
+              />
+              {errors.bathrooms && <p className="text-red-500 text-sm">{errors.bathrooms}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sqft">Square Footage</Label>
+              <Input
+                id="sqft"
+                name="sqft"
+                type="number"
+                value={formData.sqft}
+                onChange={handleChange}
+                min="0"
+                step="1"
+                className={errors.sqft ? "border-red-500" : ""}
+              />
+              {errors.sqft && <p className="text-red-500 text-sm">{errors.sqft}</p>}
+            </div>
+          </div>
+          
+          <Separator className="my-6" />
+          
+          <div className="space-y-4">
+            <Label>Amenities</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                'Air Conditioning', 'Heating', 'Parking', 'Swimming Pool', 'Gym',
+                'Security System', 'Backyard', 'Fireplace', 'Furnished', 'Washer/Dryer'
+              ].map((amenity) => (
+                <div key={amenity} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`amenity-${amenity}`}
+                    checked={(formData.amenities || []).includes(amenity)}
+                    onChange={() => handleAmenityToggle(amenity)}
+                    className="rounded text-primary focus:ring-primary"
+                  />
+                  <label htmlFor={`amenity-${amenity}`} className="text-sm">
                     {amenity}
                   </label>
                 </div>
               ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">Property Images</h3>
           
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Hammer className="h-5 w-5 text-muted-foreground" />
-              Seller Information
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="sellerContact"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contact Number</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="e.g. 9876543210" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {previewImages.map((src, index) => (
+                <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-border">
+                  <img src={src} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-7 w-7"
+                    type="button"
+                    onClick={() => removeImage(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
               
-              <FormField
-                control={form.control}
-                name="sellerEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="e.g. seller@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-          
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              Property Images
-            </h3>
-            
-            <div className="border-2 border-dashed border-input rounded-lg p-4">
-              <div className="flex flex-col items-center justify-center gap-2 py-4">
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-muted-foreground text-sm text-center">
-                  Drag &amp; drop your images here, or click to browse
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  type="button"
-                  disabled={uploadingImage}
-                >
-                  {uploadingImage ? "Uploading..." : "Select Images"}
-                </Button>
+              <label className="cursor-pointer border-2 border-dashed border-border rounded-md flex flex-col items-center justify-center aspect-square hover:bg-secondary/50 transition-colors">
                 <input
-                  id="image-upload"
                   type="file"
                   accept="image/*"
                   multiple
-                  className="hidden"
                   onChange={handleImageUpload}
-                  disabled={uploadingImage}
+                  className="hidden"
                 />
-              </div>
+                <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm text-muted-foreground">Add Images</span>
+                <span className="text-xs text-muted-foreground mt-1">(Max 5MB each)</span>
+              </label>
             </div>
             
-            {images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                {images.map((img, index) => (
-                  <div key={index} className="relative group rounded-md overflow-hidden aspect-square">
-                    <img src={img.url} alt={`Property ${index + 1}`} className="object-cover w-full h-full" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-background/80 text-destructive p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  className="flex flex-col items-center justify-center border-2 border-dashed border-input rounded-md aspect-square hover:bg-secondary/50 transition-colors"
-                >
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add More</span>
-                </button>
+            {previewImages.length === 0 && (
+              <div className="text-center p-6 bg-secondary/30 rounded-lg">
+                <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                <h4 className="font-medium">No Images Yet</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Properties with images get more views
+                </p>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <Button type="button" variant="outline" className="mt-2 mx-auto">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Images
+                  </Button>
+                </label>
               </div>
             )}
           </div>
-        </div>
+        </CardContent>
+      </Card>
+      
+      <div className="flex justify-between">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => navigate('/seller/dashboard')}
+        >
+          Cancel
+        </Button>
         
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" type="button" onClick={() => window.history.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Saving..." : property?.id ? "Update Property" : "Add Property"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+        <Button 
+          type="submit" 
+          disabled={isLoading || uploadingImages}
+        >
+          {(isLoading || uploadingImages) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {property ? 'Update Property' : 'Add Property'}
+        </Button>
+      </div>
+    </form>
   );
 };
 

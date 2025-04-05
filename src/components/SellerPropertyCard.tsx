@@ -6,6 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface Property {
   id: string;
@@ -48,44 +55,35 @@ export default function SellerPropertyCard({
   };
 
   const images = property.images.length > 0 ? property.images : ['https://via.placeholder.com/400x300?text=No+Image'];
-  const [currentImage, setCurrentImage] = useState(0);
-
-  const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length);
-  };
 
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">
       <div className="relative aspect-video overflow-hidden">
-        <img 
-          src={images[currentImage]} 
-          alt={property.title}
-          className="object-cover w-full h-full transition-opacity duration-300"
-        />
-
-        {images.length > 1 && (
-          <>
-            <button
-              onClick={prevImage}
-              className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-full"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={nextImage}
-              className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-full"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </>
-        )}
+        <Carousel className="w-full">
+          <CarouselContent>
+            {images.map((image, index) => (
+              <CarouselItem key={index}>
+                <div className="aspect-video w-full">
+                  <img 
+                    src={image} 
+                    alt={`${property.title} - Image ${index + 1}`}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          
+          {images.length > 1 && (
+            <>
+              <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60" />
+              <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60" />
+            </>
+          )}
+        </Carousel>
 
         <Badge 
-          className={`absolute top-2 right-2 ${
+          className={`absolute top-2 right-2 z-10 ${
             property.status === 'active' 
               ? 'bg-success text-success-foreground' 
               : 'bg-muted text-muted-foreground'
@@ -171,7 +169,7 @@ export default function SellerPropertyCard({
                 <Edit className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Edit Listing</TooltipContent>
+            <TooltipContent>Edit Property Details</TooltipContent>
           </Tooltip>
           
           <Tooltip>

@@ -1,308 +1,239 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
-import { authAPI } from "@/services/api";
-import usePropertyInquiries from "@/hooks/usePropertyInquiries";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { inquiryAPI } from '@/services/api';
+import mongoAuthService from '@/services/mongoAuthService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface PropertyContactDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
   propertyId: string;
-  onSuccess?: () => void;
+  sellerInfo?: {
+    id: string;
+    name?: string;
+  };
+  propertyTitle: string;
 }
 
-const PropertyContactDialog = ({
-  isOpen,
-  onOpenChange,
-  title,
+const PropertyContactDialog = ({ 
+  isOpen, 
+  onOpenChange, 
   propertyId,
-  onSuccess
+  sellerInfo,
+  propertyTitle
 }: PropertyContactDialogProps) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userDetails, setUserDetails] = useState<{
-    name: string;
-    email: string;
-    phone?: string;
-  } | null>(null);
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactMessage, setContactMessage] = useState('');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isLoggedInUser, setIsLoggedInUser] = useState(false);
+  const navigate = useNavigate();
   
-  const { createInquiry } = usePropertyInquiries();
-
+  // Get current user on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await authAPI.verifyToken();
-        
-        if (response.data) {
-          setIsAuthenticated(true);
-          setUserDetails({
-            name: response.data.name || '',
-            email: response.data.email || '',
-            phone: response.data.phone || ''
-          });
-          // Set default message for authenticated users
-          setContactMessage("Hello, I'm interested in this property and would like to know more details.");
-          setShowConfirmation(true);
-        } else {
-          setIsAuthenticated(false);
-          setUserDetails(null);
-          setShowConfirmation(false);
-        }
-      } catch (err) {
-        setIsAuthenticated(false);
-        setUserDetails(null);
-        setShowConfirmation(false);
+    const currentUser = mongoAuthService.getCurrentUser();
+    if (currentUser) {
+      setIsLoggedInUser(true);
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      setPhone(currentUser.phone || '');
+      
+      // Set a default message
+      if (!message) {
+        setMessage(`Hi, I'm interested in this property: ${propertyTitle}. Please contact me for more information.`);
       }
-    };
-    
-    if (isOpen) {
-      checkAuth();
-    } else {
-      // Reset form when dialog closes
-      setContactMessage('');
-      setContactName('');
-      setContactEmail('');
-      setContactPhone('');
-      setShowConfirmation(false);
     }
-  }, [isOpen]);
+  }, [propertyTitle, message]);
+  
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!name.trim()) newErrors.name = 'Name is required';
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (phone && !/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/.test(phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+    
+    if (!message.trim()) newErrors.message = 'Message is required';
+    if (message.trim().length < 10) newErrors.message = 'Message is too short (minimum 10 characters)';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const handleSubmit = async () => {
-    setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const isValid = validateForm();
+    if (!isValid) return;
+
+    const currentUser = mongoAuthService.getCurrentUser();
+    
+    // Check if user is trying to contact their own property
+    if (currentUser && sellerInfo && currentUser.id === sellerInfo.id) {
+      toast({
+        title: "Cannot contact your own listing",
+        description: "You cannot send an inquiry for your own property.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if user is a seller trying to contact another seller
+    if (currentUser && currentUser.isseller && !currentUser.isbuyer) {
+      toast({
+        title: "Seller account restriction",
+        description: "Your seller account cannot send inquiries. Please switch to a buyer account.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
-      if (isAuthenticated && userDetails) {
-        // For authenticated users
-        const success = await createInquiry(propertyId, contactMessage);
-        
-        if (success) {
-          onOpenChange(false);
-          if (onSuccess) onSuccess();
-        }
+      // If user is logged in, send inquiry with user info
+      if (currentUser) {
+        await inquiryAPI.createInquiry(propertyId, message);
       } else {
-        // For non-authenticated users
-        if (!contactName || !contactEmail) {
-          toast({
-            title: "Missing Information",
-            description: "Please provide your name and email.",
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
-        
-        const success = await createInquiry(
-          propertyId, 
-          contactMessage,
-          {
-            name: contactName,
-            email: contactEmail,
-            phone: contactPhone
-          }
-        );
-        
-        if (success) {
-          onOpenChange(false);
-          if (onSuccess) onSuccess();
-        }
+        // For non-logged in users, send with contact details
+        await inquiryAPI.createInquiry(propertyId, message, { name, email, phone });
       }
+      
+      toast({
+        title: "Inquiry Sent",
+        description: "Your message has been sent to the property owner. They will contact you soon.",
+      });
+      
+      onOpenChange(false);
+      
+      // Reset form (except for the logged in user data)
+      if (!currentUser) {
+        setName('');
+        setEmail('');
+        setPhone('');
+      }
+      setMessage('');
+      
+    } catch (error) {
+      console.error("Error sending inquiry:", error);
+      toast({
+        title: "Failed to Send",
+        description: "There was an error sending your inquiry. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (!isAuthenticated) {
-      // For non-authenticated users, show confirmation after collecting contact info
-      if (!contactName || !contactEmail) {
-        toast({
-          title: "Missing Information",
-          description: "Please provide your name and email.",
-          variant: "destructive"
-        });
-        return;
-      }
-      setShowConfirmation(true);
+      setIsSubmitting(false);
     }
   };
   
+  const handleLoginClick = () => {
+    onOpenChange(false);
+    navigate('/auth');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Contact about {title}</DialogTitle>
-          <DialogDescription>
-            {isAuthenticated 
-              ? "Please confirm that you'd like to share your contact details with the seller."
-              : showConfirmation 
-                ? "Please review and confirm your interest in this property."
-                : "Submit your details and message to express interest in this property."}
-          </DialogDescription>
+          <DialogTitle>Contact Property Owner</DialogTitle>
         </DialogHeader>
         
-        {isAuthenticated && userDetails ? (
-          <div className="py-4">
-            <div className="space-y-4 text-sm">
-              <p>You will be contacting the seller with these details:</p>
-              <div className="grid grid-cols-4 items-center">
-                <span className="text-right font-medium mr-4">Name:</span>
-                <span className="col-span-3">{userDetails.name}</span>
+        {!isLoggedInUser && (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              <div className="flex flex-col gap-2">
+                <p>For a faster response, consider logging in.</p>
+                <Button variant="outline" size="sm" onClick={handleLoginClick}>
+                  Log in / Sign up
+                </Button>
               </div>
-              <div className="grid grid-cols-4 items-center">
-                <span className="text-right font-medium mr-4">Email:</span>
-                <span className="col-span-3">{userDetails.email}</span>
-              </div>
-              {userDetails.phone && (
-                <div className="grid grid-cols-4 items-center">
-                  <span className="text-right font-medium mr-4">Phone:</span>
-                  <span className="col-span-3">{userDetails.phone}</span>
-                </div>
-              )}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="message-logged-in" className="text-right font-medium mr-4">
-                  Message
-                </label>
-                <Textarea
-                  id="message-logged-in"
-                  value={contactMessage}
-                  onChange={(e) => setContactMessage(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Tell the seller why you're interested (optional)"
-                />
-              </div>
-            </div>
-          </div>
-        ) : !showConfirmation ? (
-          // Contact information form for non-authenticated users
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right">
-                Name
-              </label>
-              <Input
-                id="name"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                className="col-span-3"
-                placeholder="Your name"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="email" className="text-right">
-                Email
-              </label>
-              <Input
-                id="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                className="col-span-3"
-                placeholder="Your email"
-                type="email"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="phone" className="text-right">
-                Phone (Optional)
-              </label>
-              <Input
-                id="phone"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                className="col-span-3"
-                placeholder="Your phone number"
-                type="tel"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="message" className="text-right">
-                Message
-              </label>
-              <Textarea
-                id="message"
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                className="col-span-3"
-                placeholder="Tell the seller why you're interested (optional)"
-              />
-            </div>
-          </div>
-        ) : (
-          // Confirmation view for non-authenticated users
-          <div className="py-4">
-            <div className="space-y-4 text-sm">
-              <p>Please confirm the details you're sharing with the seller:</p>
-              <div className="grid grid-cols-4 items-center">
-                <span className="text-right font-medium mr-4">Name:</span>
-                <span className="col-span-3">{contactName}</span>
-              </div>
-              <div className="grid grid-cols-4 items-center">
-                <span className="text-right font-medium mr-4">Email:</span>
-                <span className="col-span-3">{contactEmail}</span>
-              </div>
-              {contactPhone && (
-                <div className="grid grid-cols-4 items-center">
-                  <span className="text-right font-medium mr-4">Phone:</span>
-                  <span className="col-span-3">{contactPhone}</span>
-                </div>
-              )}
-              {contactMessage && (
-                <div className="grid grid-cols-4 items-center">
-                  <span className="text-right font-medium mr-4">Message:</span>
-                  <span className="col-span-3">{contactMessage}</span>
-                </div>
-              )}
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
-
-        <DialogFooter>
-          {!isAuthenticated && showConfirmation ? (
-            <>
-              <Button variant="outline" onClick={() => setShowConfirmation(false)}>
-                Back
-              </Button>
-              <Button onClick={handleSubmit} disabled={loading}>
-                {loading ? "Sending..." : "Confirm & Send"}
-              </Button>
-            </>
-          ) : !isAuthenticated ? (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-                Cancel
-              </Button>
-              <Button onClick={handleNext}>
-                Next
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={loading}>
-                {loading ? "Sending..." : "Send Interest"}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Your Name</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Enter your name"
+              disabled={isLoggedInUser}
+              className={errors.name ? "border-red-500" : ""}
+            />
+            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="Enter your email address"
+              disabled={isLoggedInUser}
+              className={errors.email ? "border-red-500" : ""}
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number (optional)</Label>
+            <Input 
+              id="phone" 
+              type="tel" 
+              value={phone} 
+              onChange={(e) => setPhone(e.target.value)} 
+              placeholder="Enter your phone number"
+              disabled={isLoggedInUser}
+              className={errors.phone ? "border-red-500" : ""}
+            />
+            {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="message">Your Message</Label>
+            <Textarea 
+              id="message" 
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              placeholder="I'm interested in this property..."
+              rows={4}
+              className={errors.message ? "border-red-500" : ""}
+            />
+            {errors.message && <p className="text-red-500 text-sm">{errors.message}</p>}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="w-full"
+            >
+              {isSubmitting ? 'Sending...' : 'Send Message'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
