@@ -31,6 +31,11 @@ interface FilterSidebarProps {
   toggleAmenity: (amenity: string) => void;
   resetFilters: () => void;
   closeFilters: () => void;
+  // Add the missing props
+  activeStatus?: string;
+  activeType?: string;
+  onStatusChange?: (status: string) => void;
+  onTypeChange?: (type: string) => void;
 }
 
 export const FilterSidebar = ({
@@ -47,7 +52,11 @@ export const FilterSidebar = ({
   selectedAmenities,
   toggleAmenity,
   resetFilters,
-  closeFilters
+  closeFilters,
+  activeStatus = 'all',
+  activeType = 'all',
+  onStatusChange = () => {},
+  onTypeChange = () => {}
 }: FilterSidebarProps) => {
   return (
     <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -57,10 +66,10 @@ export const FilterSidebar = ({
         </SheetHeader>
         
         <div className="overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
-          <StatusFilter activeStatus="all" onStatusChange={() => {}} />
+          <StatusFilter activeStatus={activeStatus} onStatusChange={onStatusChange} />
           <div className="my-4 border-t border-border"></div>
           
-          <TypeFilter activeType="all" onTypeChange={() => {}} />
+          <TypeFilter activeType={activeType} onTypeChange={onTypeChange} />
           <div className="my-4 border-t border-border"></div>
           
           <PriceFilter priceRange={priceRange} handlePriceChange={handlePriceChange} />
