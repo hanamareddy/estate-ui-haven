@@ -27,7 +27,7 @@ api.interceptors.request.use(
 );
 
 // API endpoints for Auth
-const authAPI = {
+export const authAPI = {
   register: (userData: any) => api.post('/auth/register', userData),
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
@@ -41,7 +41,7 @@ const authAPI = {
 };
 
 // API endpoints for User
-const userAPI = {
+export const userAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data: any) => api.put('/users/profile', data),
   getNotifications: () => api.get('/users/notifications'),
@@ -61,7 +61,7 @@ const userAPI = {
 };
 
 // API endpoints for Properties
-const propertyAPI = {
+export const propertyAPI = {
   getProperties: (filters: any) => api.get('/properties', { params: filters }),
   getProperty: (id: string) => api.get(`/properties/${id}`),
   createProperty: (propertyData: any) => api.post('/properties', propertyData),
@@ -71,7 +71,7 @@ const propertyAPI = {
 };
 
 // API endpoints for Inquiries
-const inquiryAPI = {
+export const inquiryAPI = {
   createInquiry: (propertyId: string, message: string, contactDetails?: any) => 
     api.post('/inquiries', { propertyId, message, contactDetails }),
   getUserInquiries: () => api.get('/inquiries/user'),
@@ -80,12 +80,5 @@ const inquiryAPI = {
     api.post(`/inquiries/${inquiryId}/respond`, { response }),
 };
 
-// Export all API services
-export {
-  api as default,
-  api,
-  authAPI,
-  userAPI,
-  propertyAPI,
-  inquiryAPI,
-};
+// Export the default API client
+export default api;

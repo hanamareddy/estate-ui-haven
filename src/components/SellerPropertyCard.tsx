@@ -1,5 +1,5 @@
-
-import { Eye, EyeOff, Edit, Trash2, Users, Heart } from "lucide-react";
+import { useState } from "react";
+import { Eye, EyeOff, Edit, Trash2, Users, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,15 +43,44 @@ export default function SellerPropertyCard({
       maximumFractionDigits: 0
     }).format(price);
   };
-  
+
+  const images = property.images.length > 0 ? property.images : ['https://via.placeholder.com/400x300?text=No+Image'];
+  const [currentImage, setCurrentImage] = useState(0);
+
+  const nextImage = () => {
+    setCurrentImage((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImage((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">
       <div className="relative aspect-video overflow-hidden">
         <img 
-          src={property.images[0]} 
+          src={images[currentImage]} 
           alt={property.title}
-          className="object-cover w-full h-full"
+          className="object-cover w-full h-full transition-opacity duration-300"
         />
+
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-full"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-full"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </>
+        )}
+
         <Badge 
           className={`absolute top-2 right-2 ${
             property.status === 'active' 

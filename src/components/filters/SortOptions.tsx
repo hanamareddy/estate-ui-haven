@@ -1,37 +1,62 @@
 
 import React from 'react';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import ActionButton from '../ActionButton';
 
 interface SortOptionsProps {
-  sortValue: string;
-  onSortChange: (value: string) => void;
+  sortOrder: string;
+  setSortOrder: (order: string) => void;
 }
 
-export const SortOptions = ({ sortValue, onSortChange }: SortOptionsProps) => {
+export const SortOptions = ({ sortOrder, setSortOrder }: SortOptionsProps) => {
   return (
-    <div className="flex items-center space-x-2">
-      <label className="text-sm font-medium text-muted-foreground">Sort by:</label>
-      <Select value={sortValue} onValueChange={onSortChange}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Default" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="newest">Newest First</SelectItem>
-          <SelectItem value="oldest">Oldest First</SelectItem>
-          <SelectItem value="price-high">Price (High to Low)</SelectItem>
-          <SelectItem value="price-low">Price (Low to High)</SelectItem>
-          <SelectItem value="area-high">Area (High to Low)</SelectItem>
-          <SelectItem value="area-low">Area (Low to High)</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className="mt-4 pt-4 border-t border-border animate-slide-down">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="col-span-1 md:col-span-4">
+          <h3 className="text-sm font-medium mb-3">Sort By</h3>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton 
+              size="sm" 
+              active={sortOrder === 'newest'} 
+              activeColor="bg-accent text-white"
+              onClick={() => setSortOrder('newest')}
+            >
+              Newest
+            </ActionButton>
+            <ActionButton 
+              size="sm" 
+              active={sortOrder === 'price-low'} 
+              activeColor="bg-accent text-white"
+              onClick={() => setSortOrder('price-low')}
+            >
+              Price: Low to High
+            </ActionButton>
+            <ActionButton 
+              size="sm" 
+              active={sortOrder === 'price-high'} 
+              activeColor="bg-accent text-white"
+              onClick={() => setSortOrder('price-high')}
+            >
+              Price: High to Low
+            </ActionButton>
+            <ActionButton 
+              size="sm" 
+              active={sortOrder === 'size-large'} 
+              activeColor="bg-accent text-white"
+              onClick={() => setSortOrder('size-large')}
+            >
+              Size: Largest
+            </ActionButton>
+            <ActionButton 
+              size="sm" 
+              active={sortOrder === 'popular'} 
+              activeColor="bg-accent text-white"
+              onClick={() => setSortOrder('popular')}
+            >
+              Most Popular
+            </ActionButton>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-
-export default SortOptions;

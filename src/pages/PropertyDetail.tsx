@@ -179,11 +179,11 @@ const PropertyDetail = () => {
             </CarouselContent>
             <CarouselPrevious className="hidden md:flex" />
             <CarouselNext className="hidden md:flex" />
-          </Carousel>
           <div className="flex justify-center mt-4 md:hidden">
             <CarouselPrevious className="static translate-y-0 mr-2" />
             <CarouselNext className="static translate-y-0" />
           </div>
+          </Carousel>
         </div>
 
         {/* Main content area */}

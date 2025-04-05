@@ -11,7 +11,7 @@ import SellerDashboard from "./pages/SellerDashboard";
 import PropertyEdit from "./pages/PropertyEdit";
 import PropertyUpload from "./pages/PropertyUpload";
 import PropertyDetail from "./pages/PropertyDetail";
-import MarketTrends from "./components/MarketTrends";
+// import MarketTrends from "./components/MarketTrends";
 import Auth from "./pages/Auth";
 import UserProfile from "./pages/UserProfile";
 import BuyerDashboard from "./pages/BuyerDashboard";
@@ -82,7 +82,7 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
-            <Route path="/market-trends" element={<MarketTrends />} />
+            {/* <Route path="/market-trends" element={<MarketTrends />} /> */}
             <Route path="/property/nearby" element={<NearbyProperties />} />
             <Route path="/property/:id" element={<PropertyDetail />} /> {/* Add new route */}
             <Route path="/forgot-password" element={<ForgotPassword />} />

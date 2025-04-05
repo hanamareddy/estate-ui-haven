@@ -183,18 +183,32 @@ const getPropertyBySellerId = async (req, res) => {
 // Get properties by current authenticated seller
 const getSellerProperties = async (req, res) => {
   try {
+    console.log("🔍 [getSellerProperties] Incoming request from user:", req.user);
+
     // Check if user is a seller
     if (!req.user.isseller) {
+      console.warn("⛔ User is not a seller:", req.user.email || req.user._id);
       return res.status(403).json({ message: 'Only sellers can access their properties' });
     }
-    
+
+    console.log("✅ User is a seller:", req.user.username || req.user.name || req.user._id);
+
+    // Fetch properties listed by this seller
     const properties = await Property.find({ sellerId: req.user._id });
+
+    console.log(`🏠 Found ${properties.length} properties for seller ${req.user.username || req.user._id}:`);
+    properties.forEach((prop, index) => {
+      console.log(`  ${index + 1}. ${prop.title} (${prop._id})`);
+    });
+
     res.json(properties);
+
   } catch (error) {
-    console.error('Error fetching user properties:', error);
+    console.error('❌ Error fetching user properties:', error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 module.exports = {
   getAllProperties,

@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 interface GoogleButtonProps {
@@ -17,23 +16,23 @@ const GoogleButton: React.FC<GoogleButtonProps> = ({
 }) => {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+    // try {
+    //   const { error } = await signInWithOAuth({
+    //     provider: 'google',
+    //     options: {
+    //       redirectTo: `${window.location.origin}/auth/callback`,
+    //     },
+    //   });
       
-      if (error) throw error;
-    } catch (error) {
-      toast({
-        title: "Google Login Failed",
-        description: error.message || "Failed to login with Google. Please try again.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
+    //   if (error) throw error;
+    // } catch (error) {
+    //   toast({
+    //     title: "Google Login Failed",
+    //     description: error.message || "Failed to login with Google. Please try again.",
+    //     variant: "destructive",
+    //   });
+    //   setIsLoading(false);
+    // }
   };
 
   return (

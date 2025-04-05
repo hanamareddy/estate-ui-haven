@@ -1,33 +1,28 @@
 
 import React from 'react';
 import { MapPin } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface LocationFilterProps {
-  location: string;
-  onLocationChange: (location: string) => void;
-}
-
-export const LocationFilter = ({ location, onLocationChange }: LocationFilterProps) => {
+export const LocationFilter = () => {
   return (
     <div className="mb-6">
-      <label htmlFor="location-filter" className="text-sm font-medium flex items-center mb-3">
-        <span className="text-accent mr-1.5">✦</span>
+      <label className="text-sm font-medium flex items-center mb-3">
+        <MapPin className="w-4 h-4 mr-1.5 text-accent" />
         Location
       </label>
-      <div className="relative">
-        <Input
-          id="location-filter"
-          type="text"
-          placeholder="Search by city, area, etc."
-          value={location}
-          onChange={(e) => onLocationChange(e.target.value)}
-          className="pl-9"
-        />
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      </div>
+      <Select>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="All Locations" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Locations</SelectItem>
+          <SelectItem value="downtown">Downtown</SelectItem>
+          <SelectItem value="suburbs">Suburbs</SelectItem>
+          <SelectItem value="beachfront">Beachfront</SelectItem>
+          <SelectItem value="rural">Rural</SelectItem>
+          <SelectItem value="mountain">Mountain</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 };
-
-export default LocationFilter;

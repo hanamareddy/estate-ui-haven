@@ -1,37 +1,36 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { PriceFilter } from './PriceFilter';
 import { BedroomsFilter } from './BedroomsFilter';
 import { BathroomsFilter } from './BathroomsFilter';
 import { PropertySizeFilter } from './PropertySizeFilter';
+import { YearBuiltFilter } from './YearBuiltFilter';
+import { LocationFilter } from './LocationFilter';
+import { PropertyIdFilter } from './PropertyIdFilter';
+import { PropertyStatusFilter } from './PropertyStatusFilter';
 import { AmenitiesFilter } from './AmenitiesFilter';
 import { StatusFilter } from './StatusFilter';
 import { TypeFilter } from './TypeFilter';
-import { LocationFilter } from './LocationFilter';
+import { SortOptions } from './SortOptions';
+import { useEffect, useRef } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '../ui/sheet';
 
 interface FilterSidebarProps {
   isFilterOpen: boolean;
-  setIsFilterOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsFilterOpen: (isOpen: boolean) => void;
   priceRange: { min: string; max: string };
   handlePriceChange: (type: 'min' | 'max', value: string) => void;
   bedrooms: string;
-  setBedrooms: React.Dispatch<React.SetStateAction<string>>;
+  setBedrooms: (value: string) => void;
   bathrooms: string;
-  setBathrooms: React.Dispatch<React.SetStateAction<string>>;
+  setBathrooms: (value: string) => void;
   areaRange: { min: string; max: string };
   handleAreaChange: (type: 'min' | 'max', value: string) => void;
   selectedAmenities: string[];
   toggleAmenity: (amenity: string) => void;
   resetFilters: () => void;
   closeFilters: () => void;
-  location?: string;
-  onLocationChange?: (location: string) => void;
-  activeStatus?: string;
-  activeType?: string;
-  onStatusChange?: (status: string) => void;
-  onTypeChange?: (type: string) => void;
 }
 
 export const FilterSidebar = ({
@@ -48,89 +47,50 @@ export const FilterSidebar = ({
   selectedAmenities,
   toggleAmenity,
   resetFilters,
-  closeFilters,
-  location = '',
-  onLocationChange = () => {},
-  activeStatus = 'all',
-  activeType = 'all',
-  onStatusChange = () => {},
-  onTypeChange = () => {}
+  closeFilters
 }: FilterSidebarProps) => {
-  if (!isFilterOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 z-40 bg-black/40" 
-      onClick={closeFilters}
-    >
-      <div 
-        id="filter-sidebar"
-        className="absolute top-0 right-0 h-full w-full max-w-md bg-background z-50 overflow-auto p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Filters</h2>
-          <Button variant="ghost" size="icon" onClick={() => setIsFilterOpen(false)}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="space-y-6">
-          <LocationFilter
-            location={location}
-            onLocationChange={onLocationChange}
-          />
-          
-          <StatusFilter
-            activeStatus={activeStatus}
-            onStatusChange={onStatusChange}
-          />
-          
-          <TypeFilter
-            activeType={activeType}
-            onTypeChange={onTypeChange}
-          />
-
-          <PriceFilter 
-            priceRange={priceRange} 
-            handlePriceChange={handlePriceChange} 
-          />
-          
-          <BedroomsFilter 
-            bedrooms={bedrooms} 
-            setBedrooms={setBedrooms} 
-          />
-          
-          <BathroomsFilter 
-            bathrooms={bathrooms} 
-            setBathrooms={setBathrooms} 
-          />
-          
-          <PropertySizeFilter 
-            areaRange={areaRange} 
-            handleAreaChange={handleAreaChange} 
-          />
-          
-          <AmenitiesFilter 
-            selectedAmenities={selectedAmenities} 
-            toggleAmenity={toggleAmenity} 
-          />
-        </div>
+    <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetHeader className="mb-6">
+          <SheetTitle>Filters</SheetTitle>
+        </SheetHeader>
         
-        <div className="flex justify-between mt-8">
-          <Button 
-            variant="outline" 
+        <div className="overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
+          <StatusFilter activeStatus="all" onStatusChange={() => {}} />
+          <div className="my-4 border-t border-border"></div>
+          
+          <TypeFilter activeType="all" onTypeChange={() => {}} />
+          <div className="my-4 border-t border-border"></div>
+          
+          <PriceFilter priceRange={priceRange} handlePriceChange={handlePriceChange} />
+          <BedroomsFilter bedrooms={bedrooms} setBedrooms={setBedrooms} />
+          <BathroomsFilter bathrooms={bathrooms} setBathrooms={setBathrooms} />
+          <PropertySizeFilter areaRange={areaRange} handleAreaChange={handleAreaChange} />
+          <YearBuiltFilter />
+          <LocationFilter />
+          <PropertyIdFilter />
+          <PropertyStatusFilter />
+          <AmenitiesFilter selectedAmenities={selectedAmenities} toggleAmenity={toggleAmenity} />
+        </div>
+
+        <div className="flex flex-wrap justify-between mt-8 gap-3 sticky bottom-0 bg-white pb-2 pt-4 border-t border-border">
+          <button 
             onClick={resetFilters}
+            className="px-4 py-2 text-sm border border-border rounded-md hover:bg-secondary/50"
           >
             Reset All
-          </Button>
-          <Button 
-            onClick={closeFilters}
-          >
-            Apply Filters
-          </Button>
+          </button>
+          <SheetClose asChild>
+            <button 
+              onClick={closeFilters}
+              className="px-4 py-2 text-sm bg-accent text-white rounded-md hover:bg-accent/90"
+            >
+              Apply Filters
+            </button>
+          </SheetClose>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 };

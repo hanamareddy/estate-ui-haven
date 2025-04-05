@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap } from 'lucide-react';
+import { Check, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap, Thermometer, Plus } from 'lucide-react';
 import { ArrowUpDown, Dumbbell } from '../icons';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -69,7 +69,7 @@ export const AmenitiesFilter = ({ selectedAmenities, toggleAmenity }: AmenitiesF
           onClick={() => setShowCustomField(!showCustomField)}
           className="inline-flex items-center px-3 py-2 rounded-md text-sm border border-dashed border-accent/50 text-accent hover:bg-accent/5"
         >
-          <Check className="w-3.5 h-3.5 mr-1.5" />
+          <Plus className="w-3.5 h-3.5 mr-1.5" />
           Add Custom
         </button>
       </div>

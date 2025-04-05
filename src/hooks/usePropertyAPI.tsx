@@ -102,15 +102,25 @@ export const usePropertyAPI = () => {
   };
   
   // Get properties for the current authenticated seller
-  const useSellerProperties = () => {
-    return useQuery({
-      queryKey: ['sellerProperties'],
-      queryFn: async () => {
-        const response = await propertyAPI.getSellerProperties();
-        return response.data; // Return data directly
-      },
-    });
-  };
+ // Custom hook to fetch properties listed by the current seller
+const useSellerProperties = () => { 
+  return useQuery({
+    // Unique key for caching and refetching seller's properties
+    queryKey: ['sellerProperties'],
+
+    // Function that actually fetches the data
+    queryFn: async () => {
+      console.log("Fetching seller properties..."); // Debug: Start of API call
+
+      const response = await propertyAPI.getSellerProperties(); // API call to get seller's properties
+      
+      console.log("Seller properties fetched:", response.data); // Debug: Log the fetched data
+
+      return response.data; // Return data directly
+    },
+  });
+};
+
   
   return {
     useProperties,

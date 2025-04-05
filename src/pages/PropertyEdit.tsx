@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PropertyForm from '@/components/property/PropertyForm';
-import { supabase } from '@/integrations/supabase/client';
+import usePropertyAPI from '@/hooks/usePropertyAPI';
+
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import MobileNavBar from '@/components/MobileNavBar';
@@ -13,6 +14,7 @@ const PropertyEdit = () => {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { useUpdateProperty,useProperty} = usePropertyAPI();
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -28,11 +30,7 @@ const PropertyEdit = () => {
 
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
-          .single();
+         const { data: data, isLoading, error } = useProperty(id || '');
 
         if (error) {
           throw error;
@@ -51,9 +49,10 @@ const PropertyEdit = () => {
       } catch (error) {
         toast({
           title: 'Error',
-          description: error.message || 'Failed to load property details.',
+          description: 'Failed to load property details.',
           variant: 'destructive',
         });
+        console.log(error.message);
         navigate('/seller/dashboard');
       } finally {
         setLoading(false);

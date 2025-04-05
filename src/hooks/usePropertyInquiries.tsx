@@ -43,8 +43,8 @@ export const usePropertyInquiries = () => {
       }
       
       // Fetch inquiries from backend API
-      const data = await inquiryAPI.getUserInquiries();
-      setInquiries(data);
+      const response = await inquiryAPI.getUserInquiries();
+      setInquiries(response.data);
     } catch (error: any) {
       console.error('Error fetching property inquiries:', error);
       setError('Failed to load your property inquiries');
@@ -68,8 +68,8 @@ export const usePropertyInquiries = () => {
       }
       
       // Fetch seller inquiries from backend API
-      const data = await inquiryAPI.getSellerInquiries();
-      setSellerInquiries(data);
+      const response = await inquiryAPI.getSellerInquiries();
+      setSellerInquiries(response.data);
     } catch (error: any) {
       console.error('Error fetching seller inquiries:', error);
       setError('Failed to load property inquiries');

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Home, PlusCircle, BarChart2, Bell, User, Settings, 
-  List, Grid, Search, Filter, X, ChevronRight, LogOut 
+import {
+  Home, PlusCircle, BarChart2, Bell, User, Settings,
+  List, Grid, Search, Filter, X, ChevronRight, LogOut
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import SellerPropertyCard from '@/components/SellerPropertyCard';
@@ -24,16 +24,16 @@ const SellerDashboard = () => {
   const [filterVisible, setFilterVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
-  
+
   const currentUser = mongoAuthService.getCurrentUser();
-  
+
   const { useSellerProperties, useDeleteProperty, useUpdateProperty } = usePropertyAPI();
-  const { data: sellerPropertiesData, isLoading: isLoadingProperties, error: propertiesError, refetch } = useSellerProperties();
+  const { data: sellerPropertiesData, isLoading: isLoadingProperties, error: propertiesError, refetch, } = useSellerProperties();
   const deletePropertyMutation = useDeleteProperty();
   const updatePropertyMutation = useUpdateProperty();
-
-  const allProperties = sellerPropertiesData?.properties || [];
-  
+  console.log("sellerPropertiesData", sellerPropertiesData);
+  const allProperties = sellerPropertiesData || [];
+  console.log("allProperties ", allProperties)
   const filteredProperties = allProperties
     .filter(property => {
       if (searchQuery) {
@@ -50,12 +50,12 @@ const SellerDashboard = () => {
       if (activeFilter === 'all') return true;
       return property.status === activeFilter;
     });
-    
+
   const activeProperties = filteredProperties.filter(p => p.status === 'active');
   const inactiveProperties = filteredProperties.filter(p => p.status === 'inactive');
   const draftProperties = filteredProperties.filter(p => p.status === 'draft');
   const pendingProperties = filteredProperties.filter(p => p.status === 'pending');
-    
+
   const handleDeleteProperty = async (propertyId) => {
     if (window.confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
       try {
@@ -75,19 +75,19 @@ const SellerDashboard = () => {
       }
     }
   };
-  
+
   const handleToggleStatus = async (propertyId) => {
     const property = allProperties.find(p => p._id === propertyId);
     if (!property) return;
-    
+
     const newStatus = property.status === 'active' ? 'inactive' : 'active';
-    
+
     try {
       await updatePropertyMutation.mutateAsync({
         id: propertyId,
         data: { status: newStatus }
       });
-      
+
       refetch();
     } catch (error) {
       console.error('Error updating property status:', error);
@@ -98,11 +98,11 @@ const SellerDashboard = () => {
       });
     }
   };
-  
+
   const handleEditProperty = (propertyId) => {
     navigate(`/seller/property/edit/${propertyId}`);
   };
-  
+
   if (!currentUser || !currentUser.isseller) {
     navigate('/auth');
     return null;
@@ -116,25 +116,25 @@ const SellerDashboard = () => {
           <h1 className="text-3xl font-bold">Seller Dashboard</h1>
           <BackToHomeButton />
         </div>
-        
+
         <Card className="mb-8">
           <CardContent className="pt-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <h2 className="text-2xl font-bold">
                 Hello, {currentUser.name || 'Seller'}
               </h2>
-              
+
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input 
-                    placeholder="Search properties..." 
-                    className="pl-9" 
+                  <Input
+                    placeholder="Search properties..."
+                    className="pl-9"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                   {searchQuery && (
-                    <button 
+                    <button
                       className="absolute right-3 top-1/2 transform -translate-y-1/2"
                       onClick={() => setSearchQuery('')}
                     >
@@ -142,26 +142,26 @@ const SellerDashboard = () => {
                     </button>
                   )}
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setFilterVisible(!filterVisible)}
                 >
                   <Filter size={20} />
                 </Button>
-                
+
                 <div className="flex border rounded-md overflow-hidden">
-                  <Button 
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'} 
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="icon"
                     className="rounded-none"
                     onClick={() => setViewMode('grid')}
                   >
                     <Grid size={18} />
                   </Button>
-                  <Button 
-                    variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
                     size="icon"
                     className="rounded-none"
                     onClick={() => setViewMode('list')}
@@ -171,39 +171,39 @@ const SellerDashboard = () => {
                 </div>
               </div>
             </div>
-            
+
             {filterVisible && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button 
-                  variant={activeFilter === 'all' ? 'default' : 'outline'} 
+                <Button
+                  variant={activeFilter === 'all' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveFilter('all')}
                 >
                   All
                 </Button>
-                <Button 
-                  variant={activeFilter === 'active' ? 'default' : 'outline'} 
+                <Button
+                  variant={activeFilter === 'active' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveFilter('active')}
                 >
                   Active
                 </Button>
-                <Button 
-                  variant={activeFilter === 'inactive' ? 'default' : 'outline'} 
+                <Button
+                  variant={activeFilter === 'inactive' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveFilter('inactive')}
                 >
                   Inactive
                 </Button>
-                <Button 
-                  variant={activeFilter === 'draft' ? 'default' : 'outline'} 
+                <Button
+                  variant={activeFilter === 'draft' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveFilter('draft')}
                 >
                   Draft
                 </Button>
-                <Button 
-                  variant={activeFilter === 'pending' ? 'default' : 'outline'} 
+                <Button
+                  variant={activeFilter === 'pending' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveFilter('pending')}
                 >
@@ -213,7 +213,7 @@ const SellerDashboard = () => {
             )}
           </CardContent>
         </Card>
-        
+
         <Tabs defaultValue="properties" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="properties">Properties</TabsTrigger>
@@ -221,7 +221,7 @@ const SellerDashboard = () => {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="properties" className="space-y-6">
             {isLoadingProperties ? (
               <div className="text-center p-12">
@@ -246,38 +246,43 @@ const SellerDashboard = () => {
                 </Link>
               </div>
             ) : (
-              <div className={viewMode === 'grid' 
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+              <div className={viewMode === 'grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
                 : 'space-y-4'
               }>
-                {filteredProperties.map(property => (
-                  <SellerPropertyCard
-                    key={property._id}
-                    property={{
-                      id: property._id,
-                      title: property.title,
-                      address: property.address,
-                      price: property.price,
-                      type: property.type,
-                      bedrooms: property.bedrooms,
-                      bathrooms: property.bathrooms,
-                      sqft: property.sqft || 0,
-                      images: property.images || ['https://via.placeholder.com/400x300?text=No+Image'],
-                      status: property.status,
-                      interestedUsers: property.interestedUsers || 0,
-                      viewCount: property.viewCount || 0,
-                      favoriteCount: property.favoriteCount || 0,
-                      created: property.createdAt || new Date().toISOString()
-                    }}
-                    onToggleStatus={handleToggleStatus}
-                    onEdit={handleEditProperty}
-                    onDelete={handleDeleteProperty}
-                  />
-                ))}
+                {filteredProperties.map(property => {
+                  console.log("Property Images:", property.images); // ✅ Debugging line for images
+
+                  return (
+                    <SellerPropertyCard
+                      key={property._id}
+                      property={{
+                        id: property._id,
+                        title: property.title,
+                        address: property.address,
+                        price: property.price,
+                        type: property.type,
+                        bedrooms: property.bedrooms,
+                        bathrooms: property.bathrooms,
+                        sqft: property.sqft || 0,
+                        images: property.images || ['https://via.placeholder.com/400x300?text=No+Image'],
+                        status: property.status,
+                        interestedUsers: property.interestedUsers || 0,
+                        viewCount: property.viewCount || 0,
+                        favoriteCount: property.favoriteCount || 0,
+                        created: property.createdAt || new Date().toISOString()
+                      }}
+                      onToggleStatus={handleToggleStatus}
+                      onEdit={handleEditProperty}
+                      onDelete={handleDeleteProperty}
+                    />
+                  );
+                })}
+
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="inquiries" className="space-y-6">
             <Card>
               <CardHeader>
@@ -293,7 +298,7 @@ const SellerDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="analytics" className="space-y-6">
             <Card>
               <CardHeader>
@@ -309,7 +314,7 @@ const SellerDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="settings" className="space-y-6">
             <Card>
               <CardHeader>

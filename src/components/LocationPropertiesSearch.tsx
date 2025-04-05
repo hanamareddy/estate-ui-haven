@@ -4,7 +4,6 @@ import { MapPin, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import PropertyCard from '@/components/PropertyCard';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
 const LocationPropertiesSearch = () => {
@@ -29,36 +28,7 @@ const LocationPropertiesSearch = () => {
     setLocation(locationInput);
     setProperties([]); // Clear previous results
 
-    try {
-      // Fetch properties from Supabase that match the location (city, area, or address)
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .or(`address.ilike.%${locationInput}%,city.ilike.%${locationInput}%,state.ilike.%${locationInput}%`)
-        .limit(10);
-
-      if (error) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        setProperties(data);
-      } else {
-        toast({
-          title: 'No Properties Found',
-          description: `We couldn't find any properties in ${locationInput}. Try a different location or check back later.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching properties by location:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch properties for this location.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+    
   };
 
   // Handle using the user's current geolocation
@@ -80,35 +50,31 @@ const LocationPropertiesSearch = () => {
         setLocationInput("Current Location");
         setLocation("Current Location");
         
-        try {
-          // In a real app, we'd use the coordinates to query properties near the user
-          // For now, we'll just fetch some random properties as an example
-          const { data, error } = await supabase
-            .from('properties')
-            .select('*')
-            .limit(6);
+        // try {
+        //   we'd use the coordinates to query properties near the 
+        //   const { data, error } = await s
 
-          if (error) throw error;
+        //   if (error) throw error;
           
-          if (data && data.length > 0) {
-            // In real implementation, we would calculate distances and sort by proximity
-            setProperties(data);
-          } else {
-            toast({
-              title: 'No Nearby Properties',
-              description: 'We couldn\'t find any properties near your current location.',
-            });
-          }
-        } catch (error) {
-          console.error('Error fetching nearby properties:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to fetch nearby properties.',
-            variant: 'destructive',
-          });
-        } finally {
-          setLoading(false);
-        }
+        //   if (data && data.length > 0) {
+        //     // In real implementation, we would calculate distances and sort by proximity
+        //     setProperties(data);
+        //   } else {
+        //     toast({
+        //       title: 'No Nearby Properties',
+        //       description: 'We couldn\'t find any properties near your current location.',
+        //     });
+        //   }
+        // } catch (error) {
+        //   console.error('Error fetching nearby properties:', error);
+        //   toast({
+        //     title: 'Error',
+        //     description: 'Failed to fetch nearby properties.',
+        //     variant: 'destructive',
+        //   });
+        // } finally {
+        //   setLoading(false);
+        // }
       },
       (error) => {
         setLoading(false);

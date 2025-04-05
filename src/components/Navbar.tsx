@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard, Building2, Trees, Home as HomeIcon } from "lucide-react";
+import { Home, Menu, X, User, Heart, LogIn, Bell, Search, LogOut, LayoutDashboard, Building2, LandPlot as Land, Home as HomeIcon,RectangleVertical as PG,TentTree as FormHouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,12 +26,12 @@ const Navbar = () => {
   const handleLogout = async () => {
     mongoAuthService.logout();
     setUser(null);
-    
+
     toast({
       title: "Signed out",
       description: "You have been signed out successfully",
     });
-    
+
     navigate("/");
   };
 
@@ -78,9 +78,9 @@ const Navbar = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-4 h-4 text-muted-foreground" />
             </div>
-            <input 
-              type="text" 
-              placeholder="Search for properties in India..." 
+            <input
+              type="text"
+              placeholder="Search for properties in India..."
               className="w-full py-2 pl-10 pr-4 rounded-full border border-border bg-secondary/30 focus:outline-none focus:ring-1 focus:ring-accent/20"
             />
           </div>
@@ -90,19 +90,21 @@ const Navbar = () => {
         <div className="hidden md:flex md:gap-6 items-center">
           <Link
             to="/"
-            className="text-sm font-medium transition-colors hover:text-accent"
+            className="text-sm font-medium transition-colors hover:text-accent px-2 py-1"
           >
             Home
           </Link>
           <Link
             to="/#properties"
-            className="text-sm font-medium transition-colors hover:text-accent"
+            className="text-sm font-medium transition-colors hover:text-accent px-2 py-1"
           >
             Properties
           </Link>
+          {/* 'Apartment', 'Villa', 'House', 'Plot', 'Commercial', 'PG/Co-living', 'Builder Floor', 'Farmhouse', 'Land' */}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-sm font-medium transition-colors hover:text-accent p-1">
+              <Button variant="ghost" className="text-sm font-medium transition-colors hover:text-accent px-2 py-1 hover:bg-gray-200">
                 Property Types
               </Button>
             </DropdownMenuTrigger>
@@ -115,8 +117,16 @@ const Navbar = () => {
                 <Building2 className="mr-2 h-4 w-4" />
                 <span>Apartments</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigateToPropertyType('PG/Co-living')}>
+                <PG className="mr-2 h-4 w-4" />
+                <span>PG/Co-living</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigateToPropertyType('Farmhouse')}>
+                <FormHouse className="mr-2 h-4 w-4" />
+                <span>Farmhouse</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigateToPropertyType('land')}>
-                <Trees className="mr-2 h-4 w-4" />
+                <Land className="mr-2 h-4 w-4" />
                 <span>Land</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -124,7 +134,7 @@ const Navbar = () => {
           {user?.isseller && (
             <Link
               to="/seller/dashboard"
-              className="text-sm font-medium transition-colors hover:text-accent"
+              className="text-sm font-medium transition-colors hover:text-accent px-2 py-1"
             >
               Seller Dashboard
             </Link>
@@ -132,7 +142,7 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             <ActionButton icon={<Bell className="h-5 w-5" />} variant="ghost" />
             <ActionButton icon={<Heart className="h-5 w-5" />} variant="ghost" badge="2" />
-            
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -169,7 +179,12 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/auth")}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 px-2 py-1"
+                onClick={() => navigate("/auth")}
+              >
                 <User className="h-4 w-4" />
                 <span>Sign In</span>
               </Button>
@@ -199,15 +214,15 @@ const Navbar = () => {
                   </div>
                 </div>
               )}
-            
+
               {/* Search Bar on Mobile */}
               <div className="relative w-full mb-4">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                   <Search className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="Search for properties in India..." 
+                <input
+                  type="text"
+                  placeholder="Search for properties in India..."
                   className="w-full py-2 pl-10 pr-4 rounded-full border border-border bg-secondary/30 focus:outline-none focus:ring-1 focus:ring-accent/20"
                 />
               </div>
@@ -226,35 +241,35 @@ const Navbar = () => {
               >
                 Properties
               </Link>
-              
+
               {/* Property Types in Mobile Menu */}
               <div className="space-y-2">
                 <p className="text-lg font-medium">Property Types</p>
                 <div className="ml-2 space-y-2">
-                  <button 
+                  <button
                     onClick={() => navigateToPropertyType('house')}
                     className="flex items-center text-sm hover:text-accent"
                   >
                     <HomeIcon className="mr-2 h-4 w-4" />
                     <span>Houses</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigateToPropertyType('apartment')}
                     className="flex items-center text-sm hover:text-accent"
                   >
                     <Building2 className="mr-2 h-4 w-4" />
                     <span>Apartments</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigateToPropertyType('land')}
                     className="flex items-center text-sm hover:text-accent"
                   >
-                    <Trees className="mr-2 h-4 w-4" />
+                    <Land className="mr-2 h-4 w-4" />
                     <span>Land</span>
                   </button>
                 </div>
               </div>
-              
+
               {user?.isseller && (
                 <Link
                   to="/seller/dashboard"
@@ -265,8 +280,8 @@ const Navbar = () => {
                 </Link>
               )}
               <div className="flex flex-col gap-4 mt-2">
-                <Button 
-                  className="gap-2 w-full justify-center" 
+                <Button
+                  className="gap-2 w-full justify-center"
                   variant="outline"
                   onClick={() => {
                     setIsOpen(false);
@@ -276,11 +291,11 @@ const Navbar = () => {
                   <Heart className="h-4 w-4" />
                   <span>Favorites</span>
                 </Button>
-                
+
                 {user ? (
                   <>
-                    <Button 
-                      className="gap-2 w-full justify-center" 
+                    <Button
+                      className="gap-2 w-full justify-center"
                       variant="outline"
                       onClick={() => {
                         setIsOpen(false);
@@ -290,8 +305,8 @@ const Navbar = () => {
                       <LayoutDashboard className="h-4 w-4" />
                       <span>Dashboard</span>
                     </Button>
-                    <Button 
-                      className="gap-2 w-full justify-center" 
+                    <Button
+                      className="gap-2 w-full justify-center"
                       variant="default"
                       onClick={() => {
                         setIsOpen(false);
@@ -303,8 +318,8 @@ const Navbar = () => {
                     </Button>
                   </>
                 ) : (
-                  <Button 
-                    className="gap-2 w-full justify-center" 
+                  <Button
+                    className="gap-2 w-full justify-center"
                     variant="default"
                     onClick={() => {
                       setIsOpen(false);

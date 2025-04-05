@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   Dialog,
@@ -48,14 +47,14 @@ const PropertyContactDialog = ({
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const user = await authAPI.verifyToken();
+        const response = await authAPI.verifyToken();
         
-        if (user.data) {
+        if (response.data) {
           setIsAuthenticated(true);
           setUserDetails({
-            name: user.data.name || '',
-            email: user.data.email || '',
-            phone: user.data.phone || ''
+            name: response.data.name || '',
+            email: response.data.email || '',
+            phone: response.data.phone || ''
           });
           // Set default message for authenticated users
           setContactMessage("Hello, I'm interested in this property and would like to know more details.");

@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface MortgageRate {
   bank: string;
@@ -40,21 +39,22 @@ export const MortgageCalculator = () => {
   
   useEffect(() => {
     const fetchCurrentRates = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('mortgage_rates')
-          .select('bank, rate, min_loan_amount, max_loan_amount, processing_fee')
-          .order('bank', { ascending: true });
+      //implement fetching from mongodb in bellow code 
+      // try {
+      //   const { data, error } = await 
+      //     .from('mortgage_rates')
+      //     .select('bank, rate, min_loan_amount, max_loan_amount, processing_fee')
+      //     .order('bank', { ascending: true });
           
-        if (error) throw error;
+      //   if (error) throw error;
         
-        if (data && data.length > 0) {
-          setCurrentRates(data);
-          setInterestRate(data[0].rate);
-        }
-      } catch (error) {
-        console.error('Error fetching current rates:', error);
-      }
+      //   if (data && data.length > 0) {
+      //     setCurrentRates(data);
+      //     setInterestRate(data[0].rate);
+      //   }
+      // } catch (error) {
+      //   console.error('Error fetching current rates:', error);
+      // }
     };
     
     fetchCurrentRates();
@@ -104,44 +104,44 @@ export const MortgageCalculator = () => {
   };
 
   const applyForLoan = async () => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
+  //   try {
+  //     // const { data: session } = await auth.getSession();
       
-      if (!session || !session.session) {
-        toast({
-          title: "Login Required",
-          description: "Please login to apply for a home loan.",
-          variant: "destructive"
-        });
-        return;
-      }
+  //     if (!session || !session.session) {
+  //       toast({
+  //         title: "Login Required",
+  //         description: "Please login to apply for a home loan.",
+  //         variant: "destructive"
+  //       });
+  //       return;
+  //     }
       
-      const { error } = await supabase
-        .from('loan_applications')
-        .insert({
-          user_id: session.session.user.id,
-          loan_amount: homePrice - downPayment,
-          property_value: homePrice,
-          down_payment: downPayment,
-          interest_rate: interestRate,
-          loan_term_years: loanTerm
-        });
+  //     const { error } = await 
+  //       .from('loan_applications')
+  //       .insert({
+  //         user_id: session.session.user.id,
+  //         loan_amount: homePrice - downPayment,
+  //         property_value: homePrice,
+  //         down_payment: downPayment,
+  //         interest_rate: interestRate,
+  //         loan_term_years: loanTerm
+  //       });
         
-      if (error) throw error;
+  //     if (error) throw error;
       
-      toast({
-        title: "Application Submitted",
-        description: "Your loan application has been submitted successfully!",
-      });
-    } catch (error) {
-      console.error('Error submitting loan application:', error);
-      toast({
-        title: "Application Failed",
-        description: "There was an error submitting your application. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
+  //     toast({
+  //       title: "Application Submitted",
+  //       description: "Your loan application has been submitted successfully!",
+  //     });
+  //   } catch (error) {
+  //     console.error('Error submitting loan application:', error);
+  //     toast({
+  //       title: "Application Failed",
+  //       description: "There was an error submitting your application. Please try again.",
+  //       variant: "destructive"
+  //     });
+  //   }
+  // };
   
   return (
     <Dialog>
@@ -282,5 +282,5 @@ export const MortgageCalculator = () => {
     </Dialog>
   );
 };
-
+};
 export default MortgageCalculator;

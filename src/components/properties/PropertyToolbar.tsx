@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import MortgageCalculator from '../MortgageCalculator';
-import SavedSearches from '../SavedSearches';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { 
@@ -24,68 +23,37 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from '../ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import mongoAuthService from "@/services/mongoAuthService";
+import { useUserAPI } from "@/hooks/useUserAPI";
 
 const PropertyToolbar = () => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showSellerTools, setShowSellerTools] = useState(false);
-  
+
+  const { useGetProfile } = useUserAPI();
+  const { data: profileData, error: profileError, isLoading: profileLoading } = useGetProfile();
+
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setUser(session.user);
-        
-        // Get user profile
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (!error) {
-          setUserProfile(profileData);
-          setShowSellerTools(profileData?.isseller);
-        }
-      }
-    };
+    const currentUser = mongoAuthService.getCurrentUser();
 
-    checkAuth();
+    if (currentUser) {
+      setUser(currentUser);
+    }
 
-    // Set up auth listener for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          setUser(session.user);
-          
-          // Get user profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+    if (profileData) {
+      setUserProfile(profileData);
+      setShowSellerTools(profileData?.isseller || false);
+    }
+  }, [profileData]);
 
-          setUserProfile(profileData);
-          setShowSellerTools(profileData?.isseller);
-        } else {
-          setUser(null);
-          setUserProfile(null);
-          setShowSellerTools(false);
-        }
-      }
-    );
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
+  if (!user) {
+    return null; // Or show login prompt
+  }
 
   return (
     <div className="flex flex-wrap justify-center gap-3 mb-8">
       <MortgageCalculator />
-      <SavedSearches />
       
       <Link to="/market-trends">
         <Button variant="outline" className="gap-2">
