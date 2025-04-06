@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { inquiryAPI } from "@/services/api";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { SellerInquiry } from '@/types/propertyInquiry';
@@ -29,7 +29,49 @@ const SellerInquiriesView = () => {
 
     try {
       const response = await inquiryAPI.getSellerInquiries();
-      setSellerInquiries(response.data);
+      // Ensure we have valid data before setting state
+      if (response && response.data && Array.isArray(response.data)) {
+        // Map the API response to match our SellerInquiry type structure
+        const formattedInquiries = response.data.map(inquiry => {
+          // Make sure property exists before accessing its properties
+          if (!inquiry.property) {
+            console.error('Missing property data in inquiry:', inquiry);
+            return null;
+          }
+          
+          return {
+            id: inquiry._id || inquiry.id,
+            property: {
+              id: inquiry.property._id || inquiry.propertyId,
+              title: inquiry.property.title || inquiry.propertyTitle || 'Property',
+              location: inquiry.property.address || inquiry.propertyAddress || 'Unknown location',
+              price: inquiry.property.price || 0,
+              city: inquiry.property.city || '',
+              state: inquiry.property.state || '',
+              images: Array.isArray(inquiry.property.images) 
+                ? inquiry.property.images.map(img => (typeof img === 'object' ? img.url : img)) 
+                : [],
+              type: inquiry.property.type || 'unknown',
+              status: inquiry.property.status || 'unknown',
+            },
+            user: {
+              id: inquiry.user?._id || inquiry.user?.id || inquiry.buyerInfo?.id || 'unknown',
+              name: inquiry.user?.name || inquiry.buyerInfo?.name || inquiry.contactName || 'Unknown user',
+              email: inquiry.user?.email || inquiry.buyerInfo?.email || inquiry.contactEmail || 'No email provided',
+              phone: inquiry.user?.phone || inquiry.buyerInfo?.phone || inquiry.contactPhone || 'Not provided'
+            },
+            message: inquiry.message || '',
+            sellerResponse: inquiry.sellerResponse || null,
+            status: inquiry.status || 'pending',
+            createdAt: inquiry.createdAt || new Date().toISOString(),
+            updatedAt: inquiry.updatedAt || inquiry.createdAt || new Date().toISOString()
+          };
+        }).filter(Boolean) as SellerInquiry[];
+        
+        setSellerInquiries(formattedInquiries);
+      } else {
+        throw new Error('Invalid response data format');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch inquiries');
       console.error('Error fetching seller inquiries:', err);

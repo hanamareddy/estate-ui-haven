@@ -141,7 +141,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
             return { id: img.public_id, url: img.url };
           }
           // Fallback for string-based images (unlikely but handling it)
-          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: img.toString() };
+          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: String(img) };
         }) 
       : []
   };
