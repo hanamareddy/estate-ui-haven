@@ -136,17 +136,20 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     status: property.status,
     images: Array.isArray(property.images) 
       ? property.images.map(img => {
-          // Add null check before accessing img properties
+          // Handle null or undefined images
           if (img === null || img === undefined) {
             return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: '' };
           }
           
-          // Check if img is already an object with url and public_id
-          if (typeof img === 'object' && img !== null && 'url' in img && 'public_id' in img) {
-            return { id: img.public_id, url: img.url };
+          // Handle object-type images
+          if (typeof img === 'object' && 'url' in img && 'public_id' in img) {
+            const imgObject = img as { url: string; public_id: string };
+            return { id: imgObject.public_id, url: imgObject.url };
           }
-          // Fallback for string-based images
-          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: String(img || '') };
+          
+          // Handle string-type images
+          const imgStr = String(img || '');
+          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: imgStr };
         }) 
       : []
   };
