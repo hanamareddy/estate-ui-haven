@@ -90,7 +90,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardContent className="flex justify-center items-center p-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
@@ -100,7 +100,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
 
   if (error || !property) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Error</CardTitle>
           <CardDescription>
@@ -136,11 +136,16 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     status: property.status,
     images: Array.isArray(property.images) 
       ? property.images.map(img => {
+          // Add null check before accessing img properties
+          if (img === null || img === undefined) {
+            return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: '' };
+          }
+          
           // Check if img is already an object with url and public_id
           if (typeof img === 'object' && img !== null && 'url' in img && 'public_id' in img) {
             return { id: img.public_id, url: img.url };
           }
-          // Fallback for string-based images (unlikely but handling it)
+          // Fallback for string-based images
           return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: String(img || '') };
         }) 
       : []
