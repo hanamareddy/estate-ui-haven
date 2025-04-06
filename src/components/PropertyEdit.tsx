@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { usePropertyAPI } from '@/hooks/usePropertyAPI';
 import { Button } from '@/components/ui/button';
@@ -12,10 +11,11 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import PropertyForm from '@/components/property/PropertyForm';
+import cloudinaryService from '@/services/cloudinaryService';
 
 interface PropertyEditProps {
   propertyId: string;
@@ -30,11 +30,9 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  // Add a flag to track if property data has already been loaded
   const dataLoaded = useRef(false);
 
   useEffect(() => {
-    // Only fetch property if data hasn't been loaded yet
     if (!dataLoaded.current) {
       const fetchProperty = async () => {
         setIsLoading(true);
@@ -42,7 +40,6 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
           const response = await getProperty(propertyId);
           if (response && response.data) {
             setProperty(response.data);
-            // Mark data as loaded
             dataLoaded.current = true;
           } else {
             throw new Error("Property not found");
@@ -61,14 +58,50 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
 
   const handleSubmit = async (data: any) => {
     try {
+      let processedImages = [];
+      
+      if (data.images && Array.isArray(data.images)) {
+        for (const image of data.images) {
+          if (image.file) {
+            try {
+              const uploadResult = await cloudinaryService.uploadImage(image.file);
+              processedImages.push({
+                url: uploadResult.imageUrl,
+                public_id: uploadResult.public_id
+              });
+            } catch (uploadError) {
+              console.error("Error uploading image:", uploadError);
+              toast({
+                title: "Warning",
+                description: "Failed to upload one or more images",
+                variant: "destructive",
+              });
+            }
+          } else if (image.url && image.id) {
+            processedImages.push({
+              url: image.url,
+              public_id: image.id
+            });
+          }
+        }
+      }
+      
       const updatedData = {
-        ...data,
-        // Convert string values to numbers where needed
+        title: data.title,
+        description: data.description,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        pincode: data.zipcode,
+        type: data.type,
         bedrooms: Number(data.bedrooms),
         bathrooms: Number(data.bathrooms),
         sqft: Number(data.size),
         price: Number(data.price),
-        constructionYear: data.yearbuilt
+        constructionYear: data.yearbuilt,
+        amenities: data.amenities,
+        status: data.status,
+        images: processedImages
       };
       
       await updateMutation.mutateAsync({ id: propertyId, data: updatedData });
@@ -124,12 +157,11 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     );
   }
 
-  // Convert property data to match the PropertyForm's expected format
   const formattedProperty = {
     title: property.title,
     description: property.description,
     address: property.address,
-    location: property.address, // Using address as location
+    location: property.address,
     city: property.city,
     state: property.state,
     zipcode: property.pincode,
@@ -143,24 +175,17 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     status: property.status,
     images: Array.isArray(property.images) 
       ? property.images.map(img => {
-          // Handle null or undefined images
-          if (img === null || img === undefined) {
+          if (!img) {
             return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: '' };
           }
           
-          // Handle object-type images with type assertion and safety checks
           if (typeof img === 'object' && img !== null) {
-            // Use type assertion with safety check
             const imgObj = img as any;
-            if ('url' in imgObj && 'public_id' in imgObj) {
-              return { 
-                id: imgObj.public_id, 
-                url: imgObj.url 
-              };
-            }
+            const url = imgObj.url || '';
+            const id = imgObj.public_id || `img-${Math.random().toString(36).substr(2, 9)}`;
+            return { id, url };
           }
           
-          // Handle string-type images
           return { 
             id: `img-${Math.random().toString(36).substr(2, 9)}`, 
             url: String(img || '') 

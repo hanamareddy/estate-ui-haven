@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, X, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap, ArrowUpDown } from 'lucide-react';
+import { Check, X, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap, ArrowUpDown, ImagePlus } from 'lucide-react';
 import { toast } from "@/hooks/use-toast"
 
 const formSchema = z.object({
@@ -79,7 +78,7 @@ const PropertyForm = ({
   onCancel,
   cancelButtonText = "Cancel"
 }: PropertyFormProps) => {
-  const [images, setImages] = useState<{ id: string; url: string }[]>(initialData?.images || []);
+  const [images, setImages] = useState<{ id: string; url: string; file?: File }[]>(initialData?.images || []);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
     initialData?.amenities ? 
       (typeof initialData.amenities === 'string' ? 
@@ -88,7 +87,6 @@ const PropertyForm = ({
       []
   );
   
-  // Convert property fields to strings for form inputs
   const defaultBedrooms = initialData?.bedrooms ? String(initialData.bedrooms) : "";
   const defaultBathrooms = initialData?.bathrooms ? String(initialData.bathrooms) : "";
   const defaultSize = initialData?.size ? String(initialData.size) : "";
@@ -116,7 +114,6 @@ const PropertyForm = ({
     },
   });
 
-  // Handle file uploads manually for now
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newImages = Array.from(e.target.files).map((file, index) => {
@@ -142,7 +139,6 @@ const PropertyForm = ({
       }
     });
     
-    // Update the form field
     const newAmenities = selectedAmenities.includes(amenity)
       ? selectedAmenities.filter(a => a !== amenity)
       : [...selectedAmenities, amenity];
@@ -150,7 +146,6 @@ const PropertyForm = ({
     form.setValue('amenities', newAmenities.join(", "));
   };
 
-  // Common Indian amenities with icons
   const commonAmenities = [
     {name: 'Lift', icon: <ArrowUpDown className="w-3.5 h-3.5 mr-1" />},
     {name: 'Car Parking', icon: <ParkingCircle className="w-3.5 h-3.5 mr-1" />},
@@ -169,7 +164,6 @@ const PropertyForm = ({
   ];
 
   const onSubmitHandler = async (values: z.infer<typeof formSchema>) => {
-    // Add the amenities and images to the form data
     const formData = {
       ...values,
       amenities: selectedAmenities,
@@ -410,7 +404,6 @@ const PropertyForm = ({
           )}
         />
 
-        {/* Amenities Selection */}
         <div>
           <FormLabel>Amenities</FormLabel>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -433,7 +426,6 @@ const PropertyForm = ({
             ))}
           </div>
 
-          {/* Hidden field to store amenities for form submission */}
           <input 
             type="hidden" 
             {...form.register('amenities')} 
@@ -441,7 +433,6 @@ const PropertyForm = ({
           />
         </div>
 
-        {/* Image Upload */}
         <div>
           <FormLabel>Images</FormLabel>
           <Card>
@@ -472,25 +463,11 @@ const PropertyForm = ({
                   className="cursor-pointer flex flex-col items-center justify-center w-full"
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg
-                      className="w-8 h-8 mb-4 text-gray-500"
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 20 16"
-                    >
-                      <path
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                      />
-                    </svg>
+                    <ImagePlus className="w-8 h-8 mb-4 text-gray-500" />
                     <p className="mb-2 text-sm text-gray-500">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                    <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF (MAX. 5MB)</p>
                   </div>
                   <input
                     id="image-upload"
