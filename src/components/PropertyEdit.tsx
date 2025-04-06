@@ -52,9 +52,19 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     fetchProperty();
   }, [propertyId, getProperty]);
 
-  const handleSubmit = async (data: Partial<Property>) => {
+  const handleSubmit = async (data: any) => {
     try {
-      await updateMutation.mutateAsync({ id: propertyId, data });
+      const updatedData = {
+        ...data,
+        // Convert string values to numbers where needed
+        bedrooms: Number(data.bedrooms),
+        bathrooms: Number(data.bathrooms),
+        sqft: Number(data.size),
+        price: Number(data.price),
+        constructionYear: data.yearbuilt
+      };
+      
+      await updateMutation.mutateAsync({ id: propertyId, data: updatedData });
       toast({
         title: "Success",
         description: "Property updated successfully",
@@ -107,6 +117,26 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     );
   }
 
+  // Convert property data to match the PropertyForm's expected format
+  const formattedProperty = {
+    title: property.title,
+    description: property.description,
+    address: property.address,
+    location: property.address, // Using address as location
+    city: property.city,
+    state: property.state,
+    zipcode: property.pincode,
+    type: property.type.toLowerCase(),
+    bedrooms: String(property.bedrooms),
+    bathrooms: String(property.bathrooms),
+    size: String(property.sqft),
+    price: String(property.price),
+    yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
+    amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",
+    status: property.status,
+    images: property.images?.map(img => ({ id: img.public_id, url: img.url })) || []
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -118,7 +148,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       
       <CardContent>
         <PropertyForm 
-          initialData={property}
+          initialData={formattedProperty}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isSubmitting={updateMutation.isPending}

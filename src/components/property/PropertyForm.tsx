@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,11 +17,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X } from 'lucide-react';
+import { Check, X, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap, ArrowUpDown } from 'lucide-react';
 import { toast } from "@/hooks/use-toast"
-import { useUploadThing } from "@/lib/uploadthing";
-import { UploadButton } from "@/lib/uploadthing";
-import { FileRejection } from 'react-dropzone';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -65,8 +63,8 @@ const formSchema = z.object({
 });
 
 interface PropertyFormProps {
-  initialData?: z.infer<typeof formSchema> & { images?: { id: string; url: string }[] };
-  onSubmit: (values: z.infer<typeof formSchema> & { images: { id: string; url: string }[] }) => Promise<void>;
+  initialData?: any;
+  onSubmit: (values: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
   submitButtonText?: string;
@@ -82,9 +80,13 @@ const PropertyForm = ({
   cancelButtonText = "Cancel"
 }: PropertyFormProps) => {
   const [images, setImages] = useState<{ id: string; url: string }[]>(initialData?.images || []);
-  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
+    initialData?.amenities ? 
+      (typeof initialData.amenities === 'string' ? 
+        initialData.amenities.split(',').map(a => a.trim()) : 
+        initialData.amenities) : 
+      []
+  );
   
   // Convert property fields to strings for form inputs
   const defaultBedrooms = initialData?.bedrooms ? String(initialData.bedrooms) : "";
@@ -109,73 +111,72 @@ const PropertyForm = ({
       size: defaultSize,
       price: defaultPrice,
       yearbuilt: defaultYearBuilt,
-      amenities: initialData?.amenities || "",
+      amenities: selectedAmenities.join(", "),
       status: initialData?.status || "active",
-    },
-  })
-
-  const { startUpload } = useUploadThing({
-    endpoint: "imageUploader",
-    onClientUploadComplete: (res) => {
-      // Do something with the response
-      console.log("Files: ", res);
-      if (res) {
-        const newImages = res.map((image) => ({ id: image.key, url: image.url }));
-        setImages((prevImages) => [...prevImages, ...newImages]);
-        toast({
-          title: "Upload Complete",
-          description: "Your images have been uploaded.",
-        })
-      }
-      setUploading(false);
-    },
-    onUploadError: (error: Error) => {
-      // Do something with the error.
-      setUploadError(error.message);
-      setUploading(false);
-      toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your images.",
-        variant: "destructive",
-      })
     },
   });
 
-  const onSubmitHandler = async (values: z.infer<typeof formSchema>) => {
-    const imagesData = images.map(image => ({ id: image.id, url: image.url }));
-    await onSubmit({ ...values, images: imagesData });
-  }
-
-  const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-    if (fileRejections.length) {
-      toast({
-        title: "Upload Failed",
-        description: "Please upload valid image files.",
-        variant: "destructive",
-      })
-      return;
+  // Handle file uploads manually for now
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newImages = Array.from(e.target.files).map((file, index) => {
+        const id = `local-${Date.now()}-${index}`;
+        const url = URL.createObjectURL(file);
+        return { id, url, file };
+      });
+      
+      setImages((prevImages) => [...prevImages, ...newImages]);
     }
-
-    setUploading(true);
-    setUploadError(null);
-    setUploadedImages(acceptedFiles);
-
-    try {
-      await startUpload(acceptedFiles);
-    } catch (error) {
-      setUploadError(error.message);
-      toast({
-        title: "Upload Failed",
-        description: "There was an error uploading your images.",
-        variant: "destructive",
-      })
-    } finally {
-      setUploading(false);
-    }
-  }, [startUpload]);
+  };
 
   const handleRemoveImage = (imageId: string) => {
     setImages(images.filter((image) => image.id !== imageId));
+  };
+
+  const toggleAmenity = (amenity: string) => {
+    setSelectedAmenities(prev => {
+      if (prev.includes(amenity)) {
+        return prev.filter(a => a !== amenity);
+      } else {
+        return [...prev, amenity];
+      }
+    });
+    
+    // Update the form field
+    const newAmenities = selectedAmenities.includes(amenity)
+      ? selectedAmenities.filter(a => a !== amenity)
+      : [...selectedAmenities, amenity];
+    
+    form.setValue('amenities', newAmenities.join(", "));
+  };
+
+  // Common Indian amenities with icons
+  const commonAmenities = [
+    {name: 'Lift', icon: <ArrowUpDown className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Car Parking', icon: <ParkingCircle className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Swimming Pool', icon: <Droplets className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Garden', icon: <Trees className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Balcony', icon: <PanelTop className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Power Backup', icon: <Zap className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Air Conditioning', icon: <Wind className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Gym', icon: <ArrowUpDown className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Wifi', icon: <Wifi className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Two Wheeler Parking', icon: <ParkingCircle className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Security', icon: <Shield className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Fireplace', icon: <Flame className="w-3.5 h-3.5 mr-1" />},
+    {name: 'Storage', icon: <Warehouse className="w-3.5 h-3.5 mr-1" />},
+    {name: '24x7 Water Supply', icon: <Droplets className="w-3.5 h-3.5 mr-1" />}
+  ];
+
+  const onSubmitHandler = async (values: z.infer<typeof formSchema>) => {
+    // Add the amenities and images to the form data
+    const formData = {
+      ...values,
+      amenities: selectedAmenities,
+      images: images
+    };
+    
+    await onSubmit(formData);
   };
 
   return (
@@ -282,6 +283,11 @@ const PropertyForm = ({
                       <SelectItem value="apartment">Apartment</SelectItem>
                       <SelectItem value="condo">Condo</SelectItem>
                       <SelectItem value="townhouse">Townhouse</SelectItem>
+                      <SelectItem value="villa">Villa</SelectItem>
+                      <SelectItem value="plot">Plot</SelectItem>
+                      <SelectItem value="commercial">Commercial</SelectItem>
+                      <SelectItem value="farmhouse">Farmhouse</SelectItem>
+                      <SelectItem value="land">Land</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -305,6 +311,7 @@ const PropertyForm = ({
                       <SelectItem value="inactive">Inactive</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="sold">Sold</SelectItem>
+                      <SelectItem value="rented">Rented</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -403,28 +410,42 @@ const PropertyForm = ({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="amenities"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amenities</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="List any amenities"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Amenities Selection */}
+        <div>
+          <FormLabel>Amenities</FormLabel>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+            {commonAmenities.map((amenity) => (
+              <button 
+                key={amenity.name}
+                type="button"
+                onClick={() => toggleAmenity(amenity.name)}
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm ${
+                  selectedAmenities.includes(amenity.name)
+                    ? 'bg-accent/10 text-accent border border-accent/20'
+                    : 'border border-border text-foreground hover:bg-secondary'
+                }`}
+              >
+                {selectedAmenities.includes(amenity.name) ? (
+                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                ) : amenity.icon}
+                {amenity.name}
+              </button>
+            ))}
+          </div>
 
+          {/* Hidden field to store amenities for form submission */}
+          <input 
+            type="hidden" 
+            {...form.register('amenities')} 
+            value={selectedAmenities.join(", ")} 
+          />
+        </div>
+
+        {/* Image Upload */}
         <div>
           <FormLabel>Images</FormLabel>
           <Card>
-            <CardContent className="flex flex-col space-y-4">
+            <CardContent className="flex flex-col space-y-4 p-4 mt-2">
               <div className="flex flex-wrap gap-2">
                 {images.map((image) => (
                   <div key={image.id} className="relative">
@@ -445,25 +466,54 @@ const PropertyForm = ({
                   </div>
                 ))}
               </div>
-              <UploadButton
-                content={{ label: "Upload images" }}
-                onDrop={onDrop}
-                // className="border rounded-md p-4 bg-secondary text-secondary-foreground"
-              />
-              {uploading && <div>Uploading...</div>}
-              {uploadError && <div className="text-red-500">{uploadError}</div>}
+              <div className="flex flex-col items-center p-4 border-2 border-dashed rounded-md">
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer flex flex-col items-center justify-center w-full"
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg
+                      className="w-8 h-8 mb-4 text-gray-500"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 20 16"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                      />
+                    </svg>
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                  </div>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="flex justify-end gap-4">
           {onCancel && (
-            <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+            <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
               {cancelButtonText}
             </Button>
           )}
           <Button type="submit" disabled={isSubmitting}>
-            {submitButtonText}
+            {isSubmitting ? 'Saving...' : submitButtonText}
           </Button>
         </div>
       </form>

@@ -1,7 +1,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Bed, Bath, Square, User, MapPin, Phone, Mail, Check, Calendar, Home, KeyRound, Ruler, Tag, Info, ArrowLeft, Heart } from 'lucide-react';
+import { 
+  Bed, Bath, Square, User, MapPin, Phone, Mail, Check, Calendar, Home, 
+  KeyRound, Ruler, Tag, Info, ArrowLeft, Heart, ParkingCircle, Droplets,
+  Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, Zap, ArrowUpDown,
+  Dumbbell
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BackToHomeButton from '@/components/BackToHomeButton';
@@ -74,17 +79,37 @@ const PropertyDetail = () => {
   // Get icon for amenity
   const getAmenityIcon = (amenity: string) => {
     const amenityLower = amenity.toLowerCase();
-    if (amenityLower.includes('power') || amenityLower.includes('electricity')) {
-      return <KeyRound className="h-4 w-4 mr-2 text-accent" />;
-    } else if (amenityLower.includes('parking')) {
-      return <MapPin className="h-4 w-4 mr-2 text-accent" />;
-    } else if (amenityLower.includes('lift') || amenityLower.includes('elevator')) {
-      return <Square className="h-4 w-4 mr-2 text-accent" />;
-    } else if (amenityLower.includes('water')) {
-      return <Bath className="h-4 w-4 mr-2 text-accent" />;
+    
+    if (amenityLower.includes('lift') || amenityLower.includes('elevator')) {
+      return <ArrowUpDown className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('car') && amenityLower.includes('parking')) {
+      return <ParkingCircle className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('pool') || amenityLower.includes('swimming')) {
+      return <Droplets className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('garden')) {
+      return <Trees className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('balcony')) {
+      return <PanelTop className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('power') || amenityLower.includes('electricity')) {
+      return <Zap className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('air') || amenityLower.includes('ac')) {
+      return <Wind className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('gym')) {
+      return <Dumbbell className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('wifi') || amenityLower.includes('internet')) {
+      return <Wifi className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('two') && amenityLower.includes('parking')) {
+      return <ParkingCircle className="h-4 w-4 mr-2 text-accent" />;
     } else if (amenityLower.includes('security')) {
-      return <User className="h-4 w-4 mr-2 text-accent" />;
+      return <Shield className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('fire')) {
+      return <Flame className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('storage')) {
+      return <Warehouse className="h-4 w-4 mr-2 text-accent" />;
+    } else if (amenityLower.includes('water')) {
+      return <Droplets className="h-4 w-4 mr-2 text-accent" />;
     }
+    
     return <Check className="h-4 w-4 mr-2 text-accent" />;
   };
 
