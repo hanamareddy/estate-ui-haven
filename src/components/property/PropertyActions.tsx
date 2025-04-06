@@ -3,6 +3,7 @@ import React from 'react';
 import { ExternalLink, X } from 'lucide-react';
 import ActionButton from '../ActionButton';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PropertyActionsProps {
   onInterestClick: () => void;
@@ -21,15 +22,18 @@ const PropertyActions = ({
   onClose,
   showCloseButton = false
 }: PropertyActionsProps) => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="mt-4 flex space-x-3">
+    <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:gap-2">
       <Button 
         className="flex-1 btn-primary"
         onClick={onInterestClick}
+        size={isMobile ? "sm" : "default"}
       >
         I'm interested
       </Button>
-      <div className="flex gap-1">
+      <div className="flex gap-1 justify-center sm:justify-start">
         {onCompare && (
           <ActionButton
             icon={<div className={`w-4 h-4 grid place-items-center font-bold ${isCompared ? 'text-accent' : ''}`}>⊞</div>}
@@ -44,7 +48,6 @@ const PropertyActions = ({
           variant="outline"
           aria-label="View details"
           onClick={onViewDetails}
-          className="block md:block" // Ensure visible on all devices
         />
         {showCloseButton && onClose && (
           <ActionButton
@@ -52,7 +55,6 @@ const PropertyActions = ({
             variant="outline"
             aria-label="Close"
             onClick={onClose}
-            className="block" // Ensure visible on all devices
           />
         )}
       </div>

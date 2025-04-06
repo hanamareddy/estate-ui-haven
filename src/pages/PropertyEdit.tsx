@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 import PropertyEdit from '@/components/PropertyEdit';
 import { toast } from '@/hooks/use-toast';
 import MobileNavBar from '@/components/MobileNavBar';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const PropertyEditPage = () => {
   const { id } = useParams();
@@ -21,14 +23,25 @@ const PropertyEditPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Edit Property</h1>
-          <p className="text-muted-foreground mt-2">
-            Update your property listing details and images
-          </p>
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="mb-4 sm:mb-6 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-3" 
+            onClick={() => navigate('/seller/dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Edit Property</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              Update your property listing details and images
+            </p>
+          </div>
         </div>
         
         <PropertyEdit

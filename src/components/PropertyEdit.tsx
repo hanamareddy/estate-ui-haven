@@ -141,21 +141,21 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
             return { id: img.public_id, url: img.url };
           }
           // Fallback for string-based images (unlikely but handling it)
-          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: String(img) };
+          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: String(img || '') };
         }) 
       : []
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Edit Property: {property.title}</CardTitle>
-        <CardDescription>
+    <Card className="shadow-md">
+      <CardHeader className="bg-gray-50 border-b">
+        <CardTitle className="text-xl sm:text-2xl">Edit Property: {property.title}</CardTitle>
+        <CardDescription className="mt-1 text-sm sm:text-base">
           Update property details to keep your listing accurate and attractive to potential buyers
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="p-4 sm:p-6">
         <PropertyForm 
           initialData={formattedProperty}
           onSubmit={handleSubmit}

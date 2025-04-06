@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { inquiryAPI } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 import { SellerInquiry } from '@/types/propertyInquiry';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const SellerInquiriesView = () => {
   const [sellerInquiries, setSellerInquiries] = useState<SellerInquiry[]>([]);
@@ -18,6 +19,7 @@ const SellerInquiriesView = () => {
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [responding, setResponding] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchSellerInquiries();
@@ -162,36 +164,36 @@ const SellerInquiriesView = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Property Inquiries from Buyers</h2>
+      <h2 className="text-xl sm:text-2xl font-bold">Property Inquiries from Buyers</h2>
       <div className="grid gap-4">
         {sellerInquiries.map((inquiry) => (
-          <Card key={inquiry.id}>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
+          <Card key={inquiry.id} className="overflow-hidden">
+            <CardHeader className="pb-2 px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
-                  <CardTitle className="text-lg">{inquiry.property.title}</CardTitle>
-                  <CardDescription>{inquiry.property.location}</CardDescription>
+                  <CardTitle className="text-lg line-clamp-1">{inquiry.property.title}</CardTitle>
+                  <CardDescription className="text-sm">{inquiry.property.location}</CardDescription>
                 </div>
                 <Badge
-                  className={
+                  className={`self-start ${
                     inquiry.status === 'responded'
                       ? 'bg-green-500'
                       : inquiry.status === 'closed'
                       ? 'bg-gray-500'
                       : 'bg-yellow-500'
-                  }
+                  }`}
                 >
                   {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               <div className="space-y-4">
                 <div className="bg-muted/30 p-3 rounded-md">
                   <p className="text-sm font-medium">Buyer Information:</p>
-                  <div className="grid grid-cols-2 gap-2 mt-1 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1 text-sm">
                     <p>Name: <span className="font-medium">{inquiry.user.name}</span></p>
-                    <p>Email: <span className="font-medium">{inquiry.user.email}</span></p>
+                    <p>Email: <span className="font-medium break-all">{inquiry.user.email}</span></p>
                     {inquiry.user.phone && (
                       <p>Phone: <span className="font-medium">{inquiry.user.phone}</span></p>
                     )}
@@ -217,12 +219,14 @@ const SellerInquiriesView = () => {
                       value={responses[inquiry.id] || ''}
                       onChange={(e) => handleResponseChange(inquiry.id, e.target.value)}
                       placeholder="Type your response here..."
-                      className="mb-2"
+                      className="mb-2 resize-none"
+                      rows={isMobile ? 3 : 4}
                     />
                     <Button 
                       size="sm"
                       onClick={() => handleSendResponse(inquiry.id)}
                       disabled={!responses[inquiry.id]?.trim() || responding[inquiry.id]}
+                      className="w-full sm:w-auto"
                     >
                       {responding[inquiry.id] ? 'Sending...' : 'Send Response'}
                     </Button>
@@ -234,14 +238,16 @@ const SellerInquiriesView = () => {
                 </p>
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="px-4 sm:px-6 pt-0">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="ml-auto"
+                className="ml-auto gap-2"
                 onClick={() => handleViewProperty(inquiry.property.id)}
               >
-                View Property
+                <ExternalLink className="h-4 w-4" />
+                <span className="hidden sm:inline">View Property</span>
+                <span className="sm:hidden">View</span>
               </Button>
             </CardFooter>
           </Card>
