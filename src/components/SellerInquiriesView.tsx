@@ -35,26 +35,37 @@ const SellerInquiriesView = () => {
       if (response && response.data && Array.isArray(response.data)) {
         // Map the API response to match our SellerInquiry type structure
         const formattedInquiries = response.data.map(inquiry => {
-          // Make sure property exists before accessing its properties
-          if (!inquiry.property) {
+          const property = inquiry.property || {
+            _id: inquiry.propertyId,
+            title: inquiry.propertyTitle,
+            address: inquiry.propertyAddress,
+            price: inquiry.propertyPrice,
+            city: inquiry.propertyCity,
+            state: inquiry.propertyState,
+            images: inquiry.propertyImages || [],
+            type: inquiry.propertyType,
+            status: inquiry.propertyStatus,
+          };
+        
+          if (!property || !property.title) {
             console.error('Missing property data in inquiry:', inquiry);
             return null;
           }
-          
+        
           return {
             id: inquiry._id || inquiry.id,
             property: {
-              id: inquiry.property._id || inquiry.propertyId,
-              title: inquiry.property.title || inquiry.propertyTitle || 'Property',
-              location: inquiry.property.address || inquiry.propertyAddress || 'Unknown location',
-              price: inquiry.property.price || 0,
-              city: inquiry.property.city || '',
-              state: inquiry.property.state || '',
-              images: Array.isArray(inquiry.property.images) 
-                ? inquiry.property.images.map(img => (typeof img === 'object' ? img.url : img)) 
+              id: property._id || inquiry.propertyId || 'unknown',
+              title: property.title || 'Property',
+              location: property.address || 'Unknown location',
+              price: property.price || 0,
+              city: property.city || '',
+              state: property.state || '',
+              images: Array.isArray(property.images)
+                ? property.images.map(img => (typeof img === 'object' ? img.url : img))
                 : [],
-              type: inquiry.property.type || 'unknown',
-              status: inquiry.property.status || 'unknown',
+              type: property.type || 'unknown',
+              status: property.status || 'unknown',
             },
             user: {
               id: inquiry.user?._id || inquiry.user?.id || inquiry.buyerInfo?.id || 'unknown',
@@ -69,6 +80,7 @@ const SellerInquiriesView = () => {
             updatedAt: inquiry.updatedAt || inquiry.createdAt || new Date().toISOString()
           };
         }).filter(Boolean) as SellerInquiry[];
+        
         
         setSellerInquiries(formattedInquiries);
       } else {

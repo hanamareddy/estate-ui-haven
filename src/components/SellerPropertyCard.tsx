@@ -175,8 +175,9 @@ export default function SellerPropertyCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant="outline" 
+                variant="destructive" 
                 size="icon" 
+
                 onClick={() => onDelete && onDelete(property.id)}
               >
                 <Trash2 className="h-4 w-4" />
@@ -201,7 +202,7 @@ export default function SellerPropertyCard({
         
         <Button onClick={() => window.open(`/property/${property.id}`, '_blank')}>
           <ExternalLink className="h-4 w-4 mr-2" />
-          View Public Listing
+          View Listing
         </Button>
       </CardFooter>
     </Card>
