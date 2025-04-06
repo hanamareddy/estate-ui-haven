@@ -1,527 +1,473 @@
-import React, { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Upload, X, Plus, Image as ImageIcon } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { validatePropertyForm } from '@/utils/validationUtils';
-import axios from 'axios';
+import React, { useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { X } from 'lucide-react';
+import { toast } from "@/hooks/use-toast"
+import { useUploadThing } from "@/lib/uploadthing";
+import { UploadButton } from "@/lib/uploadthing";
+import { FileRejection } from 'react-dropzone';
 
-interface PropertyFormData {
-  title: string;
-  description: string;
-  price: number;
-  address: string;
-  type: string;
-  status: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  sqft?: number;
-  amenities?: string[];
-  images?: string[];
-  [key: string]: any;
-}
+const formSchema = z.object({
+  title: z.string().min(2, {
+    message: "Title must be at least 2 characters.",
+  }),
+  description: z.string().optional(),
+  address: z.string().min(2, {
+    message: "Address must be at least 2 characters.",
+  }),
+  location: z.string().min(2, {
+    message: "Location must be at least 2 characters.",
+  }),
+  city: z.string().min(2, {
+    message: "City must be at least 2 characters.",
+  }),
+  state: z.string().min(2, {
+    message: "State must be at least 2 characters.",
+  }),
+  zipcode: z.string().min(5, {
+    message: "Zipcode must be at least 5 characters.",
+  }),
+  type: z.string().min(2, {
+    message: "Type must be at least 2 characters.",
+  }),
+  bedrooms: z.string().refine((val) => !isNaN(parseInt(val)), {
+    message: "Bedrooms must be a number.",
+  }),
+  bathrooms:  z.string().refine((val) => !isNaN(parseInt(val)), {
+    message: "Bathrooms must be a number.",
+  }),
+  size:  z.string().refine((val) => !isNaN(parseInt(val)), {
+    message: "Size must be a number.",
+  }),
+  price:  z.string().refine((val) => !isNaN(parseInt(val)), {
+    message: "Price must be a number.",
+  }),
+  yearbuilt:  z.string().refine((val) => !isNaN(parseInt(val)), {
+    message: "Year Built must be a number.",
+  }),
+  amenities: z.string().optional(),
+  status: z.string().optional(),
+});
 
 interface PropertyFormProps {
-  onSubmit: (data: PropertyFormData) => void;
-  isLoading: boolean;
-  property?: any;
+  initialData?: z.infer<typeof formSchema> & { images?: { id: string; url: string }[] };
+  onSubmit: (values: z.infer<typeof formSchema> & { images: { id: string; url: string }[] }) => Promise<void>;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
+  submitButtonText?: string;
+  cancelButtonText?: string;
 }
 
-const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState<PropertyFormData>({
-    title: '',
-    description: '',
-    price: 0,
-    address: '',
-    type: 'house',
-    status: 'active',
-    bedrooms: 0,
-    bathrooms: 0,
-    sqft: 0,
-    amenities: [],
-    images: [],
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-  useEffect(() => {
-    if (property) {
-      setFormData({
-        title: property.title || '',
-        description: property.description || '',
-        price: property.price || 0,
-        address: property.address || '',
-        type: property.type || 'house',
-        status: property.status || 'active',
-        bedrooms: property.bedrooms || 0,
-        bathrooms: property.bathrooms || 0,
-        sqft: property.sqft || 0,
-        amenities: property.amenities || [],
-        images: property.images?.map((img: any) => typeof img === 'string' ? img : img.url) || [],
-      });
-      
-      if (property.images && property.images.length > 0) {
-        const imageUrls = property.images.map((img: any) => 
-          typeof img === 'string' ? img : img.url
-        );
-        setPreviewImages(imageUrls);
-      }
-    }
-  }, [property]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    let parsedValue = value;
-    
-    if (type === 'number') {
-      parsedValue = value === '' ? 0 : parseFloat(value);
-    }
-    
-    setFormData(prev => ({ ...prev, [name]: parsedValue }));
-    
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
+const PropertyForm = ({ 
+  initialData, 
+  onSubmit, 
+  isSubmitting = false,
+  submitButtonText = "Submit",
+  onCancel,
+  cancelButtonText = "Cancel"
+}: PropertyFormProps) => {
+  const [images, setImages] = useState<{ id: string; url: string }[]>(initialData?.images || []);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-  
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked ? 'active' : 'inactive' }));
-  };
+  // Convert property fields to strings for form inputs
+  const defaultBedrooms = initialData?.bedrooms ? String(initialData.bedrooms) : "";
+  const defaultBathrooms = initialData?.bathrooms ? String(initialData.bathrooms) : "";
+  const defaultSize = initialData?.size ? String(initialData.size) : "";
+  const defaultPrice = initialData?.price ? String(initialData.price) : "";
+  const defaultYearBuilt = initialData?.yearbuilt ? String(initialData.yearbuilt) : "";
 
-  const handleAmenityToggle = (amenity: string) => {
-    setFormData(prev => {
-      const amenities = prev.amenities || [];
-      
-      if (amenities.includes(amenity)) {
-        return { ...prev, amenities: amenities.filter(a => a !== amenity) };
-      } else {
-        return { ...prev, amenities: [...amenities, amenity] };
-      }
-    });
-  };
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      address: initialData?.address || "",
+      location: initialData?.location || "",
+      city: initialData?.city || "",
+      state: initialData?.state || "",
+      zipcode: initialData?.zipcode || "",
+      type: initialData?.type || "",
+      bedrooms: defaultBedrooms,
+      bathrooms: defaultBathrooms,
+      size: defaultSize,
+      price: defaultPrice,
+      yearbuilt: defaultYearBuilt,
+      amenities: initialData?.amenities || "",
+      status: initialData?.status || "active",
+    },
+  })
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const validFiles: File[] = [];
-    const invalidFiles: string[] = [];
-    
-    Array.from(e.target.files).forEach(file => {
-      if (!file.type.startsWith('image/')) {
-        invalidFiles.push(`${file.name} (not an image)`);
-        return;
+  const { startUpload } = useUploadThing({
+    endpoint: "imageUploader",
+    onClientUploadComplete: (res) => {
+      // Do something with the response
+      console.log("Files: ", res);
+      if (res) {
+        const newImages = res.map((image) => ({ id: image.key, url: image.url }));
+        setImages((prevImages) => [...prevImages, ...newImages]);
+        toast({
+          title: "Upload Complete",
+          description: "Your images have been uploaded.",
+        })
       }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        invalidFiles.push(`${file.name} (exceeds 5MB)`);
-        return;
-      }
-      
-      validFiles.push(file);
-    });
-    
-    if (invalidFiles.length > 0) {
-      toast({
-        title: "Invalid files",
-        description: `${invalidFiles.join(', ')} cannot be uploaded.`,
-        variant: "destructive"
-      });
-    }
-    
-    setImageFiles(prev => [...prev, ...validFiles]);
-    
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImages(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const uploadImages = async () => {
-    if (imageFiles.length === 0) return [];
-    
-    setUploadingImages(true);
-    
-    try {
-      const formData = new FormData();
-      imageFiles.forEach(file => {
-        formData.append('images', file);
-      });
-      
-      const response = await axios.post(`${API_URL}/upload/multiple`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (response.data.success) {
-        setImageFiles([]);
-        return response.data.images.map((img: { url: string }) => img.url);
-      } else {
-        throw new Error('Image upload failed');
-      }
-    } catch (error) {
-      console.error('Error uploading images:', error);
+      setUploading(false);
+    },
+    onUploadError: (error: Error) => {
+      // Do something with the error.
+      setUploadError(error.message);
+      setUploading(false);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload images. Please try again.",
-        variant: "destructive"
-      });
-      return [];
-    } finally {
-      setUploadingImages(false);
-    }
-  };
+        description: "There was an error uploading your images.",
+        variant: "destructive",
+      })
+    },
+  });
 
-  const removeImage = (index: number) => {
-    setPreviewImages(prev => prev.filter((_, i) => i !== index));
-    
-    if (index < (formData.images?.length || 0)) {
-      setFormData(prev => ({
-        ...prev,
-        images: (prev.images || []).filter((_, i) => i !== index)
-      }));
-    }
-    
-    if (index >= (formData.images?.length || 0)) {
-      const adjustedIndex = index - (formData.images?.length || 0);
-      setImageFiles(prev => prev.filter((_, i) => i !== adjustedIndex));
-    }
-  };
+  const onSubmitHandler = async (values: z.infer<typeof formSchema>) => {
+    const imagesData = images.map(image => ({ id: image.id, url: image.url }));
+    await onSubmit({ ...values, images: imagesData });
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const validation = validatePropertyForm(formData);
-    if (!validation.isValid) {
-      setErrors(validation.errors);
-      
-      const firstErrorField = Object.keys(validation.errors)[0];
-      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
-      if (errorElement) {
-        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      
+  const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+    if (fileRejections.length) {
       toast({
-        title: "Validation Error",
-        description: "Please correct the errors in the form.",
-        variant: "destructive"
-      });
-      
+        title: "Upload Failed",
+        description: "Please upload valid image files.",
+        variant: "destructive",
+      })
       return;
     }
-    
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadedImages(acceptedFiles);
+
     try {
-      let allImages = [...(formData.images || [])];
-      
-      if (imageFiles.length > 0) {
-        const uploadedImageUrls = await uploadImages();
-        allImages = [...allImages, ...uploadedImageUrls];
-      }
-      
-      const finalFormData = {
-        ...formData,
-        images: allImages
-      };
-      
-      await onSubmit(finalFormData);
+      await startUpload(acceptedFiles);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      setUploadError(error.message);
       toast({
-        title: "Submission Failed",
-        description: "There was an error submitting the form. Please try again.",
-        variant: "destructive"
-      });
+        title: "Upload Failed",
+        description: "There was an error uploading your images.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false);
     }
+  }, [startUpload]);
+
+  const handleRemoveImage = (imageId: string) => {
+    setImages(images.filter((image) => image.id !== imageId));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-10">
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Property Title <span className="text-red-500">*</span></Label>
-              <Input
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g. Modern 3 Bedroom Apartment"
-                className={errors.title ? "border-red-500" : ""}
-              />
-              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Describe your property in detail..."
-                rows={5}
-                className={errors.description ? "border-red-500" : ""}
-              />
-              {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">Property Details</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (USD) <span className="text-red-500">*</span></Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="e.g. 250000"
-                className={errors.price ? "border-red-500" : ""}
-              />
-              {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="address">Property Address <span className="text-red-500">*</span></Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Enter full address"
-                className={errors.address ? "border-red-500" : ""}
-              />
-              {errors.address && <p className="text-red-500 text-sm">{errors.address}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="type">Property Type <span className="text-red-500">*</span></Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => handleSelectChange('type', value)}
-              >
-                <SelectTrigger id="type" className={errors.type ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="house">House</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="condo">Condo</SelectItem>
-                  <SelectItem value="land">Land</SelectItem>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.type && <p className="text-red-500 text-sm">{errors.type}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">
-                <div className="flex items-center space-x-2">
-                  <span>Active Listing</span>
-                  <Switch
-                    id="status"
-                    checked={formData.status === 'active'}
-                    onCheckedChange={(checked) => handleSwitchChange('status', checked)}
-                  />
-                </div>
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {formData.status === 'active' 
-                  ? 'Your property will be visible to all users' 
-                  : 'Your property will be hidden from public view'}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="bedrooms">Bedrooms</Label>
-              <Input
-                id="bedrooms"
-                name="bedrooms"
-                type="number"
-                value={formData.bedrooms}
-                onChange={handleChange}
-                min="0"
-                step="1"
-                className={errors.bedrooms ? "border-red-500" : ""}
-              />
-              {errors.bedrooms && <p className="text-red-500 text-sm">{errors.bedrooms}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="bathrooms">Bathrooms</Label>
-              <Input
-                id="bathrooms"
-                name="bathrooms"
-                type="number"
-                value={formData.bathrooms}
-                onChange={handleChange}
-                min="0"
-                step="0.5"
-                className={errors.bathrooms ? "border-red-500" : ""}
-              />
-              {errors.bathrooms && <p className="text-red-500 text-sm">{errors.bathrooms}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="sqft">Square Footage</Label>
-              <Input
-                id="sqft"
-                name="sqft"
-                type="number"
-                value={formData.sqft}
-                onChange={handleChange}
-                min="0"
-                step="1"
-                className={errors.sqft ? "border-red-500" : ""}
-              />
-              {errors.sqft && <p className="text-red-500 text-sm">{errors.sqft}</p>}
-            </div>
-          </div>
-          
-          <Separator className="my-6" />
-          
-          <div className="space-y-4">
-            <Label>Amenities</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[
-                'Air Conditioning', 'Heating', 'Parking', 'Swimming Pool', 'Gym',
-                'Security System', 'Backyard', 'Fireplace', 'Furnished', 'Washer/Dryer'
-              ].map((amenity) => (
-                <div key={amenity} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`amenity-${amenity}`}
-                    checked={(formData.amenities || []).includes(amenity)}
-                    onChange={() => handleAmenityToggle(amenity)}
-                    className="rounded text-primary focus:ring-primary"
-                  />
-                  <label htmlFor={`amenity-${amenity}`} className="text-sm">
-                    {amenity}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">Property Images</h3>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {previewImages.map((src, index) => (
-                <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-border">
-                  <img src={src} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-7 w-7"
-                    type="button"
-                    onClick={() => removeImage(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              <label className="cursor-pointer border-2 border-dashed border-border rounded-md flex flex-col items-center justify-center aspect-square hover:bg-secondary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <Plus className="h-8 w-8 text-muted-foreground mb-2" />
-                <span className="text-sm text-muted-foreground">Add Images</span>
-                <span className="text-xs text-muted-foreground mt-1">(Max 5MB each)</span>
-              </label>
-            </div>
-            
-            {previewImages.length === 0 && (
-              <div className="text-center p-6 bg-secondary/30 rounded-lg">
-                <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-                <h4 className="font-medium">No Images Yet</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Properties with images get more views
-                </p>
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <Button type="button" variant="outline" className="mt-2 mx-auto">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Images
-                  </Button>
-                </label>
-              </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmitHandler)} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Property Title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="flex justify-between">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => navigate('/seller/dashboard')}
-        >
-          Cancel
-        </Button>
-        
-        <Button 
-          type="submit" 
-          disabled={isLoading || uploadingImages}
-        >
-          {(isLoading || uploadingImages) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {property ? 'Update Property' : 'Add Property'}
-        </Button>
-      </div>
-    </form>
+          />
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="123 Main St" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location</FormLabel>
+                <FormControl>
+                  <Input placeholder="Downtown" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input placeholder="New York" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="state"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>State</FormLabel>
+                <FormControl>
+                  <Input placeholder="NY" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="zipcode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Zipcode</FormLabel>
+                <FormControl>
+                  <Input placeholder="10001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="house">House</SelectItem>
+                      <SelectItem value="apartment">Apartment</SelectItem>
+                      <SelectItem value="condo">Condo</SelectItem>
+                      <SelectItem value="townhouse">Townhouse</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="sold">Sold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="bedrooms"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Bedrooms</FormLabel>
+                <FormControl>
+                  <Input placeholder="2" type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="bathrooms"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Bathrooms</FormLabel>
+                <FormControl>
+                  <Input placeholder="1" type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="size"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Size (sq ft)</FormLabel>
+                <FormControl>
+                  <Input placeholder="1200" type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input placeholder="250000" type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="yearbuilt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Year Built</FormLabel>
+                <FormControl>
+                  <Input placeholder="1990" type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Tell us about your property"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="amenities"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amenities</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="List any amenities"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div>
+          <FormLabel>Images</FormLabel>
+          <Card>
+            <CardContent className="flex flex-col space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {images.map((image) => (
+                  <div key={image.id} className="relative">
+                    <img
+                      src={image.url}
+                      alt="Property"
+                      className="h-32 w-32 rounded-md object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 rounded-full opacity-75 transition hover:opacity-100"
+                      type="button"
+                      onClick={() => handleRemoveImage(image.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <UploadButton
+                content={{ label: "Upload images" }}
+                onDrop={onDrop}
+                // className="border rounded-md p-4 bg-secondary text-secondary-foreground"
+              />
+              {uploading && <div>Uploading...</div>}
+              {uploadError && <div className="text-red-500">{uploadError}</div>}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex justify-end gap-4">
+          {onCancel && (
+            <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+              {cancelButtonText}
+            </Button>
+          )}
+          <Button type="submit" disabled={isSubmitting}>
+            {submitButtonText}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

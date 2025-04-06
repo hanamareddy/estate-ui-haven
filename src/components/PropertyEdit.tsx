@@ -15,6 +15,7 @@ import {
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import PropertyForm from '@/components/property/PropertyForm';
 
 interface PropertyEditProps {
   propertyId: string;
@@ -116,27 +117,14 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       </CardHeader>
       
       <CardContent>
-        {/* This is a placeholder for the actual form - you would implement a full form here */}
-        <div className="space-y-4">
-          <p>Property ID: {property.id || property._id}</p>
-          <p>Last Updated: {new Date(property.updatedAt || Date.now()).toLocaleDateString()}</p>
-          
-          <div className="flex justify-end gap-4 mt-6">
-            <Button variant="outline" onClick={handleCancel} disabled={updateMutation.isPending}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => handleSubmit({...property, updatedAt: new Date().toISOString()})}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? 
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 
-                <><Save className="mr-2 h-4 w-4" /> Save Changes</>
-              }
-            </Button>
-          </div>
-        </div>
+        <PropertyForm 
+          initialData={property}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isSubmitting={updateMutation.isPending}
+          submitButtonText="Save Changes"
+          cancelButtonText="Cancel"
+        />
       </CardContent>
     </Card>
   );

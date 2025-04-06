@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
-import { inquiryAPI } from '@/services/api';
+import useUserInquiries from '@/hooks/inquiries/useUserInquiries';
 import mongoAuthService from '@/services/mongoAuthService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -15,12 +16,11 @@ interface PropertyContactDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   propertyId: string;
+  propertyTitle?: string;
   sellerInfo?: {
     id?: string;
     name?: string;
   };
-  propertyTitle: string;
-  title?: string;
   onSuccess?: () => void;
 }
 
@@ -28,9 +28,8 @@ const PropertyContactDialog = ({
   isOpen, 
   onOpenChange, 
   propertyId,
-  sellerInfo,
   propertyTitle,
-  title,
+  sellerInfo,
   onSuccess
 }: PropertyContactDialogProps) => {
   const [name, setName] = useState('');
@@ -41,8 +40,9 @@ const PropertyContactDialog = ({
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoggedInUser, setIsLoggedInUser] = useState(false);
   const navigate = useNavigate();
+  const { createInquiry } = useUserInquiries();
   
-  const displayTitle = propertyTitle || title || '';
+  const displayTitle = propertyTitle || '';
   
   useEffect(() => {
     const currentUser = mongoAuthService.getCurrentUser();
@@ -109,37 +109,25 @@ const PropertyContactDialog = ({
     setIsSubmitting(true);
     
     try {
-      if (currentUser) {
-        await inquiryAPI.createInquiry(propertyId, message);
-      } else {
-        await inquiryAPI.createInquiry(propertyId, message, { name, email, phone });
+      const contactDetails = !currentUser ? { name, email, phone } : undefined;
+      const success = await createInquiry(propertyId, message, contactDetails);
+      
+      if (success) {
+        onOpenChange(false);
+        
+        if (!currentUser) {
+          setName('');
+          setEmail('');
+          setPhone('');
+        }
+        setMessage('');
+        
+        if (onSuccess) {
+          onSuccess();
+        }
       }
-      
-      toast({
-        title: "Inquiry Sent",
-        description: "Your message has been sent to the property owner. They will contact you soon.",
-      });
-      
-      onOpenChange(false);
-      
-      if (!currentUser) {
-        setName('');
-        setEmail('');
-        setPhone('');
-      }
-      setMessage('');
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-      
     } catch (error) {
       console.error("Error sending inquiry:", error);
-      toast({
-        title: "Failed to Send",
-        description: "There was an error sending your inquiry. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsSubmitting(false);
     }

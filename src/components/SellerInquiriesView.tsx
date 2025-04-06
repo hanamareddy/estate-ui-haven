@@ -4,18 +4,44 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import usePropertyInquiries from "@/hooks/usePropertyInquiries";
+import { inquiryAPI } from "@/services/api";
+import { toast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from 'date-fns';
+import { Loader2 } from 'lucide-react';
+import { SellerInquiry } from '@/types/propertyInquiry';
+import { useNavigate } from 'react-router-dom';
 
 const SellerInquiriesView = () => {
-  const { sellerInquiries, fetchSellerInquiries, respondToInquiry, loading } = usePropertyInquiries();
+  const [sellerInquiries, setSellerInquiries] = useState<SellerInquiry[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [responding, setResponding] = useState<Record<string, boolean>>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSellerInquiries();
-    console.log()
   }, []);
+
+  const fetchSellerInquiries = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await inquiryAPI.getSellerInquiries();
+      setSellerInquiries(response.data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch inquiries');
+      console.error('Error fetching seller inquiries:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load inquiries. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleResponseChange = (inquiryId: string, value: string) => {
     setResponses(prev => ({ ...prev, [inquiryId]: value }));
@@ -27,16 +53,56 @@ const SellerInquiriesView = () => {
     setResponding(prev => ({ ...prev, [inquiryId]: true }));
     
     try {
-      await respondToInquiry(inquiryId, responses[inquiryId]);
+      await inquiryAPI.respondToInquiry(inquiryId, responses[inquiryId]);
       // Clear response field after successful submission
       setResponses(prev => ({ ...prev, [inquiryId]: '' }));
+      
+      // Refresh inquiries after response
+      fetchSellerInquiries();
+      
+      toast({
+        title: 'Response Sent',
+        description: 'Your response has been sent to the buyer.',
+      });
+    } catch (err: any) {
+      console.error('Error sending response:', err);
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to send response',
+        variant: 'destructive',
+      });
     } finally {
       setResponding(prev => ({ ...prev, [inquiryId]: false }));
     }
   };
 
+  const handleViewProperty = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
+
   if (loading) {
-    return <div className="flex justify-center p-8">Loading inquiries...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading inquiries...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+          <CardDescription>
+            {error}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button onClick={fetchSellerInquiries}>Try Again</Button>
+        </CardFooter>
+      </Card>
+    );
   }
 
   if (sellerInquiries.length === 0) {
@@ -127,7 +193,12 @@ const SellerInquiriesView = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm" className="ml-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => handleViewProperty(inquiry.property.id)}
+              >
                 View Property
               </Button>
             </CardFooter>
