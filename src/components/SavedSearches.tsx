@@ -63,6 +63,7 @@ const SavedSearches: React.FC<SavedSearchesProps> = ({ userId }) => {
         title: "Error",
         description: "Failed to update notification settings. Please try again.",
         variant: "destructive",
+        duration: 3000,
       });
     }
   };
@@ -84,6 +85,7 @@ const SavedSearches: React.FC<SavedSearchesProps> = ({ userId }) => {
         title: "Error",
         description: "Failed to delete search. Please try again.",
         variant: "destructive",
+        duration: 3000
       });
     }
   };

@@ -8,7 +8,7 @@ import usePropertyAPI from '@/hooks/usePropertyAPI';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/seller/DashboardHeader';
 import PropertiesTabContent from '@/components/seller/PropertiesTabContent';
-import InquiriesTabContent from '@/components/seller/InquiriesTabContent';
+import SellerInquiriesView from '@/components/SellerInquiriesView';
 import AnalyticsTabContent from '@/components/seller/AnalyticsTabContent';
 import SettingsTabContent from '@/components/seller/SettingsTabContent';
 import MobileNavBar from '@/components/MobileNavBar';
@@ -122,7 +122,8 @@ const SellerDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to update property status. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 4000
       });
     }
   };
@@ -182,7 +183,7 @@ const SellerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="inquiries" className="space-y-6">
-            <InquiriesTabContent />
+            <SellerInquiriesView/>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

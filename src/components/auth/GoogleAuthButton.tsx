@@ -45,6 +45,7 @@ const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
       if (window.google && googleButtonRef.current) {
         window.google.accounts.id.initialize({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '123456789012-example.apps.googleusercontent.com',
+  
           callback: handleGoogleResponse
         });
 

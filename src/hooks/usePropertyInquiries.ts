@@ -46,6 +46,7 @@ const usePropertyInquiries = () => {
 
   const fetchSellerInquiries = async () => {
     // Only fetch seller inquiries if the user is a seller
+    console.log("fetchSellerInquiries")
     const currentUser = mongoAuthService.getCurrentUser();
     if (!currentUser || !currentUser.isseller) {
       return;

@@ -18,19 +18,19 @@ const MobileNavBar = () => {
       <div className="flex justify-around items-center">
         <Link to="/" className="flex flex-col items-center p-2">
           <Home className={`h-5 w-5 ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/') ? 'font-medium text-primary' : ''}`}>Home</span>
+          <span className={`text-xs mt-1 ${isActive('/') ? 'font-medium text-primary' : ''}`}></span>
         </Link>
         <Link to="/property/nearby" className="flex flex-col items-center p-2">
           <Search className={`h-5 w-5 ${isActive('/property/nearby') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/property/nearby') ? 'font-medium text-primary' : ''}`}>Search</span>
+          <span className={`text-xs mt-1 ${isActive('/property/nearby') ? 'font-medium text-primary' : ''}`}></span>
         </Link>
         <Link to="/buyer/dashboard" className="flex flex-col items-center p-2">
           <Heart className={`h-5 w-5 ${isActive('/buyer/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/buyer/dashboard') ? 'font-medium text-primary' : ''}`}>Favorites</span>
+          <span className={`text-xs mt-1 ${isActive('/buyer/dashboard') ? 'font-medium text-primary' : ''}`}></span>
         </Link>
         <Link to="/profile" className="flex flex-col items-center p-2">
           <User className={`h-5 w-5 ${isActive('/profile') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/profile') ? 'font-medium text-primary' : ''}`}>Profile</span>
+          <span className={`text-xs mt-1 ${isActive('/profile') ? 'font-medium text-primary' : ''}`}></span>
         </Link>
       </div>
     </div>

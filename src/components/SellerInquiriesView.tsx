@@ -14,6 +14,7 @@ const SellerInquiriesView = () => {
 
   useEffect(() => {
     fetchSellerInquiries();
+    console.log()
   }, []);
 
   const handleResponseChange = (inquiryId: string, value: string) => {

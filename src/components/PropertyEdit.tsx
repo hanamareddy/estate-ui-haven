@@ -57,7 +57,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       toast({
         title: "Success",
         description: "Property updated successfully",
-        duration: 3000,
+        duration: 2000,
       });
       if (onSuccess) onSuccess();
       else navigate(`/property/${propertyId}`);
@@ -67,7 +67,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
         title: "Error",
         description: "Failed to update property",
         variant: "destructive",
-        duration: 5000,
+        duration: 3000,
       });
     }
   };
