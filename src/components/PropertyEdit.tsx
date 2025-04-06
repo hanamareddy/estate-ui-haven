@@ -118,7 +118,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       <CardContent>
         {/* This is a placeholder for the actual form - you would implement a full form here */}
         <div className="space-y-4">
-          <p>Property ID: {property._id}</p>
+          <p>Property ID: {property.id || property._id}</p>
           <p>Last Updated: {new Date(property.updatedAt || Date.now()).toLocaleDateString()}</p>
           
           <div className="flex justify-end gap-4 mt-6">

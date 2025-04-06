@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,12 @@ interface PropertyContactDialogProps {
   onOpenChange: (open: boolean) => void;
   propertyId: string;
   sellerInfo?: {
-    id: string;
+    id?: string;
     name?: string;
   };
   propertyTitle: string;
+  title?: string;
+  onSuccess?: () => void;
 }
 
 const PropertyContactDialog = ({ 
@@ -28,7 +29,9 @@ const PropertyContactDialog = ({
   onOpenChange, 
   propertyId,
   sellerInfo,
-  propertyTitle
+  propertyTitle,
+  title,
+  onSuccess
 }: PropertyContactDialogProps) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,7 +42,8 @@ const PropertyContactDialog = ({
   const [isLoggedInUser, setIsLoggedInUser] = useState(false);
   const navigate = useNavigate();
   
-  // Get current user on mount
+  const displayTitle = propertyTitle || title || '';
+  
   useEffect(() => {
     const currentUser = mongoAuthService.getCurrentUser();
     if (currentUser) {
@@ -48,12 +52,11 @@ const PropertyContactDialog = ({
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
       
-      // Set a default message
       if (!message) {
-        setMessage(`Hi, I'm interested in this property: ${propertyTitle}. Please contact me for more information.`);
+        setMessage(`Hi, I'm interested in this property: ${displayTitle}. Please contact me for more information.`);
       }
     }
-  }, [propertyTitle, message]);
+  }, [displayTitle, message]);
   
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -85,7 +88,6 @@ const PropertyContactDialog = ({
 
     const currentUser = mongoAuthService.getCurrentUser();
     
-    // Check if user is trying to contact their own property
     if (currentUser && sellerInfo && currentUser.id === sellerInfo.id) {
       toast({
         title: "Cannot contact your own listing",
@@ -95,7 +97,6 @@ const PropertyContactDialog = ({
       return;
     }
     
-    // Check if user is a seller trying to contact another seller
     if (currentUser && currentUser.isseller && !currentUser.isbuyer) {
       toast({
         title: "Seller account restriction",
@@ -108,11 +109,9 @@ const PropertyContactDialog = ({
     setIsSubmitting(true);
     
     try {
-      // If user is logged in, send inquiry with user info
       if (currentUser) {
         await inquiryAPI.createInquiry(propertyId, message);
       } else {
-        // For non-logged in users, send with contact details
         await inquiryAPI.createInquiry(propertyId, message, { name, email, phone });
       }
       
@@ -123,13 +122,16 @@ const PropertyContactDialog = ({
       
       onOpenChange(false);
       
-      // Reset form (except for the logged in user data)
       if (!currentUser) {
         setName('');
         setEmail('');
         setPhone('');
       }
       setMessage('');
+      
+      if (onSuccess) {
+        onSuccess();
+      }
       
     } catch (error) {
       console.error("Error sending inquiry:", error);

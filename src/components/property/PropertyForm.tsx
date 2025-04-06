@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +13,6 @@ import { toast } from '@/hooks/use-toast';
 import { validatePropertyForm } from '@/utils/validationUtils';
 import axios from 'axios';
 
-// Define the property interface
 interface PropertyFormData {
   title: string;
   description: string;
@@ -57,7 +55,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  // Initialize form with existing property data if in edit mode
   useEffect(() => {
     if (property) {
       setFormData({
@@ -71,11 +68,14 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
         bathrooms: property.bathrooms || 0,
         sqft: property.sqft || 0,
         amenities: property.amenities || [],
-        images: property.images || [],
+        images: property.images?.map((img: any) => typeof img === 'string' ? img : img.url) || [],
       });
       
       if (property.images && property.images.length > 0) {
-        setPreviewImages(property.images);
+        const imageUrls = property.images.map((img: any) => 
+          typeof img === 'string' ? img : img.url
+        );
+        setPreviewImages(imageUrls);
       }
     }
   }, [property]);
@@ -84,14 +84,12 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
     const { name, value, type } = e.target;
     let parsedValue = value;
     
-    // Convert number inputs
     if (type === 'number') {
       parsedValue = value === '' ? 0 : parseFloat(value);
     }
     
     setFormData(prev => ({ ...prev, [name]: parsedValue }));
     
-    // Clear error for this field if it exists
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -104,7 +102,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -133,18 +130,15 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     
-    // Validate file types and size
     const validFiles: File[] = [];
     const invalidFiles: string[] = [];
     
     Array.from(e.target.files).forEach(file => {
-      // Check file type
       if (!file.type.startsWith('image/')) {
         invalidFiles.push(`${file.name} (not an image)`);
         return;
       }
       
-      // Check file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
         invalidFiles.push(`${file.name} (exceeds 5MB)`);
         return;
@@ -161,10 +155,8 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
       });
     }
     
-    // Add valid files to state
     setImageFiles(prev => [...prev, ...validFiles]);
     
-    // Create preview URLs
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -214,7 +206,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
   const removeImage = (index: number) => {
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
     
-    // If it's an existing image from the server
     if (index < (formData.images?.length || 0)) {
       setFormData(prev => ({
         ...prev,
@@ -222,7 +213,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
       }));
     }
     
-    // If it's a newly added image from imageFiles
     if (index >= (formData.images?.length || 0)) {
       const adjustedIndex = index - (formData.images?.length || 0);
       setImageFiles(prev => prev.filter((_, i) => i !== adjustedIndex));
@@ -232,12 +222,10 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     const validation = validatePropertyForm(formData);
     if (!validation.isValid) {
       setErrors(validation.errors);
       
-      // Scroll to the first error
       const firstErrorField = Object.keys(validation.errors)[0];
       const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
       if (errorElement) {
@@ -254,7 +242,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
     }
     
     try {
-      // Upload images if there are any new ones
       let allImages = [...(formData.images || [])];
       
       if (imageFiles.length > 0) {
@@ -262,7 +249,6 @@ const PropertyForm = ({ onSubmit, isLoading, property }: PropertyFormProps) => {
         allImages = [...allImages, ...uploadedImageUrls];
       }
       
-      // Submit the complete form data
       const finalFormData = {
         ...formData,
         images: allImages

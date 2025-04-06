@@ -333,7 +333,7 @@ const PropertyDetailDialog = ({
         isOpen={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         propertyId={typeof seller?.id === 'string' ? seller.id : ''}
-        sellerInfo={seller}
+        sellerInfo={seller?.id ? { id: seller.id, name: seller.name } : undefined}
         propertyTitle={title}
       />
     </>

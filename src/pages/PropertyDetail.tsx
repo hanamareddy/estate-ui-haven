@@ -377,7 +377,7 @@ const PropertyDetail = () => {
       <PropertyContactDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        title={property.title}
+        propertyTitle={property.title}
         propertyId={id || ''}
         onSuccess={handleInterestSuccess}
       />
