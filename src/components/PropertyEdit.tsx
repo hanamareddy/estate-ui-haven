@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PropertyForm from '@/components/property/PropertyForm';
 
 interface PropertyEditProps {
@@ -30,26 +30,33 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Add a flag to track if property data has already been loaded
+  const dataLoaded = useRef(false);
 
   useEffect(() => {
-    const fetchProperty = async () => {
-      setIsLoading(true);
-      try {
-        const response = await getProperty(propertyId);
-        if (response && response.data) {
-          setProperty(response.data);
-        } else {
-          throw new Error("Property not found");
+    // Only fetch property if data hasn't been loaded yet
+    if (!dataLoaded.current) {
+      const fetchProperty = async () => {
+        setIsLoading(true);
+        try {
+          const response = await getProperty(propertyId);
+          if (response && response.data) {
+            setProperty(response.data);
+            // Mark data as loaded
+            dataLoaded.current = true;
+          } else {
+            throw new Error("Property not found");
+          }
+        } catch (err) {
+          console.error("Error fetching property:", err);
+          setError(err as Error);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching property:", err);
-        setError(err as Error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      };
 
-    fetchProperty();
+      fetchProperty();
+    }
   }, [propertyId, getProperty]);
 
   const handleSubmit = async (data: any) => {
@@ -141,15 +148,23 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
             return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: '' };
           }
           
-          // Handle object-type images
-          if (typeof img === 'object' && 'url' in img && 'public_id' in img) {
-            const imgObject = img as { url: string; public_id: string };
-            return { id: imgObject.public_id, url: imgObject.url };
+          // Handle object-type images with type assertion and safety checks
+          if (typeof img === 'object' && img !== null) {
+            // Use type assertion with safety check
+            const imgObj = img as any;
+            if ('url' in imgObj && 'public_id' in imgObj) {
+              return { 
+                id: imgObj.public_id, 
+                url: imgObj.url 
+              };
+            }
           }
           
           // Handle string-type images
-          const imgStr = String(img || '');
-          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: imgStr };
+          return { 
+            id: `img-${Math.random().toString(36).substr(2, 9)}`, 
+            url: String(img || '') 
+          };
         }) 
       : []
   };

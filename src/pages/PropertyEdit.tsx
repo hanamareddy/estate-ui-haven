@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PropertyEdit from '@/components/PropertyEdit';
@@ -11,8 +11,16 @@ import { Button } from '@/components/ui/button';
 const PropertyEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const idRef = useRef(id);
   
-  if (!id) {
+  // Store ID in ref to prevent unnecessary re-renders
+  useEffect(() => {
+    if (id) {
+      idRef.current = id;
+    }
+  }, [id]);
+  
+  if (!idRef.current) {
     toast({
       title: 'Error',
       description: 'Property ID is missing.',
@@ -21,6 +29,14 @@ const PropertyEditPage = () => {
     navigate('/seller/dashboard');
     return null;
   }
+
+  const handleSuccess = () => {
+    navigate('/seller/dashboard');
+  };
+
+  const handleCancel = () => {
+    navigate('/seller/dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
@@ -45,13 +61,9 @@ const PropertyEditPage = () => {
         </div>
         
         <PropertyEdit
-          propertyId={id}
-          onSuccess={() => {
-            navigate('/seller/dashboard');
-          }}
-          onCancel={() => {
-            navigate('/seller/dashboard');
-          }}
+          propertyId={idRef.current}
+          onSuccess={handleSuccess}
+          onCancel={handleCancel}
         />
       </div>
       <MobileNavBar />
