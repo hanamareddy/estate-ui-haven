@@ -134,7 +134,16 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
     amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",
     status: property.status,
-    images: property.images?.map(img => ({ id: img.public_id, url: img.url })) || []
+    images: Array.isArray(property.images) 
+      ? property.images.map(img => {
+          // Check if img is already an object with url and public_id
+          if (typeof img === 'object' && img !== null && 'url' in img && 'public_id' in img) {
+            return { id: img.public_id, url: img.url };
+          }
+          // Fallback for string-based images (unlikely but handling it)
+          return { id: `img-${Math.random().toString(36).substr(2, 9)}`, url: img.toString() };
+        }) 
+      : []
   };
 
   return (
