@@ -54,7 +54,10 @@ export default function SellerPropertyCard({
     }).format(price);
   };
 
-  const images = property.images.length > 0 ? property.images : ['https://via.placeholder.com/400x300?text=No+Image'];
+  const images =
+    property.images && property.images.length > 0
+      ? property.images.map((img: any) => typeof img === "string" ? img : img.url)
+      : ['https://via.placeholder.com/400x300?text=No+Image'];
 
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-md">

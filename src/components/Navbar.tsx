@@ -9,19 +9,27 @@ import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ActionButton from "./ActionButton";
 import mongoAuthService from "@/services/mongoAuthService";
+// import NotificationIndicator from "./NotificationIndicator";
+import NotificationCenter from "./NotificationCenter";
+import useFavorites from "@/hooks/useFavorites";
+import FavoriteButton from "./FavoriteButton";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const navigate = useNavigate();
+  const { favorites, loading: favoritesLoading, refreshFavorites } = useFavorites();
 
   useEffect(() => {
     // Check for authenticated user
     const currentUser = mongoAuthService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
+      // Load user's favorites
+      refreshFavorites();
     }
-  }, []);
+  }, [refreshFavorites]);
 
   const handleLogout = async () => {
     mongoAuthService.logout();
@@ -49,6 +57,11 @@ const Navbar = () => {
 
   const navigateToPropertyType = (type: string) => {
     navigate(`/?type=${type}`);
+    setIsOpen(false);
+  };
+
+  const navigateToFavorites = () => {
+    navigate("/favorites");
     setIsOpen(false);
   };
 
@@ -140,8 +153,14 @@ const Navbar = () => {
             </Link>
           )}
           <div className="flex items-center gap-2">
-            <ActionButton icon={<Bell className="h-5 w-5" />} variant="ghost" />
-            <ActionButton icon={<Heart className="h-5 w-5" />} variant="ghost" badge="2" />
+            {/* <NotificationIndicator onClick={() => setNotificationOpen(true)} /> */}
+            
+            <ActionButton 
+              icon={<Heart className="h-5 w-5" />} 
+              variant="ghost" 
+              badge={favorites?.length > 0 ? favorites.length.toString() : undefined} 
+              onClick={navigateToFavorites}
+            />
 
             {user ? (
               <DropdownMenu>
@@ -170,6 +189,10 @@ const Navbar = () => {
                   <DropdownMenuItem onClick={handleDashboardClick}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={navigateToFavorites}>
+                    <Heart className="mr-2 h-4 w-4" />
+                    <span>Favorites ({favorites?.length || 0})</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
@@ -335,6 +358,12 @@ const Navbar = () => {
           </SheetContent>
         </Sheet>
       </div>
+      
+      {/* Notification Center */}
+      <NotificationCenter 
+        isOpen={notificationOpen} 
+        onClose={() => setNotificationOpen(false)} 
+      />
     </nav>
   );
 };

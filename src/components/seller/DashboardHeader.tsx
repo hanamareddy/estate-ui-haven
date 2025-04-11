@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Search, Filter, X, Grid, List } from 'lucide-react';
+import { Search, Filter, X, Grid, List,Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import BackToHomeButton from '@/components/BackToHomeButton';
+import { Link } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -33,7 +33,12 @@ const DashboardHeader = ({
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Seller Dashboard</h1>
-        <BackToHomeButton />
+        <Link to="/seller/property/add">
+            <Button variant="outline" className="gap-2 bg-accent text-white hover:bg-accent/90">
+              <Upload className="h-4 w-4" />
+              List Property
+            </Button>
+          </Link>
       </div>
 
       <Card className="mb-8">

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Upload, Plus, X, Home, MapPin, DollarSign, Bed, Bath, SquareCode, Info, Zap, Hammer, Landmark, Check, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, ArrowUpDown, ImagePlus } from "lucide-react";
+import { Upload, Plus, X, Home, MapPin, DollarSign, Bed, Bath, SquareCode, Info, Zap, Hammer, Landmark, Check, ParkingCircle, Droplets, Trees, PanelTop, Wifi, Wind, Flame, Shield, Warehouse, ArrowUpDown } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
 import cloudinaryService from "@/services/cloudinaryService";
 
@@ -104,14 +103,14 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     defaultValues: property ? {
       title: property.title || "",
       address: property.address || "",
-      price: property.price || undefined,
-      bedrooms: property.bedrooms || undefined,
-      bathrooms: property.bathrooms || undefined,
-      sqft: property.sqft || undefined,
+      price: property.price || 0,
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      sqft: property.sqft || 0,
       type: property.type as "House" | "Apartment" | "Land" | "Villa" | "Builder Floor" | "Farmhouse" | "PG",
       status: property.status as "active" | "inactive",
       propertyStatus: (property.propertyStatus as "Ready to Move" | "Under Construction" | "Resale") || "Ready to Move",
-      description: property.description || `${property.bedrooms}-BHK, ${property.type || "apartment"} with ${property.sqft} sq ft area located in ${property.city || "great neighborhood"}, offering comfortable living and quality amenities.`,
+      description: property.description || `${property.bedrooms || 0}-BHK, ${property.type || "apartment"} with ${property.sqft || 0} sq ft area located in ${property.city || "great neighborhood"}, offering comfortable living and quality amenities.`,
       state: property.state || "",
       city: property.city || "",
       pincode: property.pincode || "",
@@ -122,10 +121,10 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     } : {
       title: "",
       address: "",
-      price: undefined,
-      bedrooms: undefined,
-      bathrooms: undefined,
-      sqft: 1,
+      price: 0,
+      bedrooms: 0,
+      bathrooms: 0,
+      sqft: 0,
       type: "House",
       status: "active",
       propertyStatus: "Ready to Move",
@@ -145,12 +144,14 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     if (!files || files.length === 0) return;
 
     setUploadingImage(true);
+    console.log("Uploading images:", files);
 
     try {
       const fileArray = Array.from(files);
 
       const uploadedImages = await cloudinaryService.uploadImages(fileArray);
 
+      console.log("Uploaded images:", uploadedImages);
       setImages(prev => [...prev, ...uploadedImages]);
       toast({
         title: "Images uploaded",
@@ -171,9 +172,11 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
 
   const removeImage = (index: number) => {
     const imageToRemove = images[index];
+    console.log("Removing image:", imageToRemove);
 
     if (imageToRemove.public_id && !imageToRemove.public_id.startsWith('legacy_')) {
       setRemovedImages(prev => [...prev, imageToRemove.public_id]);
+      console.log("Updated removed images list:", removedImages);
     }
 
     setImages(prev => prev.filter((_, i) => i !== index));
@@ -196,7 +199,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     { name: '24x7 Water Supply', icon: <Droplets className="w-3.5 h-3.5 mr-1" /> }
   ];
 
-
   const toggleAmenity = (amenity: string) => {
     setAmenities(prev =>
       prev.includes(amenity)
@@ -206,21 +208,71 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
   };
 
   const handleSubmit = async (values: PropertyFormValues) => {
-    if (images.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add at least one image",
-        variant: "destructive",
-      });
+    // Create an array to store missing fields
+    const missingFields: string[] = [];
+
+    // Check required fields
+    if (!values.title || values.title.length < 5) missingFields.push("Title");
+    if (!values.address || values.address.length < 5) missingFields.push("Address");
+    if (!values.price || values.price <= 0) missingFields.push("Price");
+    if (!values.sqft || values.sqft <= 0) missingFields.push("Area in Sqft");
+    if (!values.state) missingFields.push("State");
+    if (!values.city) missingFields.push("City");
+    if (!values.pincode || values.pincode.length < 6) missingFields.push("PIN Code");
+    if (!values.sellerContact || values.sellerContact.length < 10) missingFields.push("Contact Number");
+    if (images.length === 0) missingFields.push("Property Images");
+
+    // If there are missing fields, show appropriate toast message
+    if (missingFields.length > 0) {
+      if (missingFields.length <= 3) {
+        // Show specific fields if 3 or fewer are missing
+        toast({
+          title: "Required Fields Missing",
+          description: `Please fill in the following: ${missingFields.join(", ")}`,
+          variant: "destructive",
+          duration: 5000,
+        });
+      } else {
+        // Show general message if more than 3 fields are missing
+        toast({
+          title: "Warning",
+          description: `Please fill in all required fields (${missingFields.length} fields missing)`,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
       return;
     }
 
-    onSubmit({
+    // Continue with form submission if all required fields are filled
+    const normalizedValues = {
       ...values,
+      sqft: Number(values.sqft),
+      price: Number(values.price),
+      bedrooms: Number(values.bedrooms) || 0,
+      bathrooms: Number(values.bathrooms) || 0,
+    };
+
+    const submissionData = {
+      ...normalizedValues,
       images,
       amenities,
-      ...(property?.id && removedImages.length > 0 ? { removedImages } : {})
-    });
+    };
+
+    console.log("Final data being submitted to backend:", submissionData);
+
+    try {
+      await onSubmit(submissionData);
+    } catch (error: any) {
+      console.error("Error creating property:", error);
+      const errorMessage = error.response?.data?.message || "Failed to create property. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 1000,
+      });
+    }
   };
 
   const getCitiesByState = (state: string) => {
@@ -269,7 +321,63 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                 </FormItem>
               )}
             />
+             <div className="md:col-span-2 space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              Property Images
+            </h3>
 
+            <div className="border-2 border-dashed border-input rounded-lg p-4">
+              <div className="flex flex-col items-center justify-center gap-2 py-4">
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="text-muted-foreground text-sm text-center">
+                  Drag &amp; drop your images here, or click to browse
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('image-upload')?.click()}
+                  type="button"
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? "Uploading..." : "Select Images"}
+                </Button>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+              </div>
+            </div>
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                {images.map((img, index) => (
+                  <div key={index} className="relative group rounded-md overflow-hidden aspect-square">
+                    <img src={img.url} alt={`Property ${index + 1}`} className="object-cover w-full h-full" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-background/80 text-destructive p-1 rounded-full group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-10 w-10" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('image-upload')?.click()}
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-input rounded-md aspect-square hover:bg-secondary/50 transition-colors"
+                >
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground mt-1">Add More</span>
+                </button>
+              </div>
+            )}
+          </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -377,7 +485,20 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                     <FormControl>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" placeholder="e.g. 100000"{...field} />
+                        <Input
+                          className="pl-10"
+                          type="number"
+                          placeholder="e.g. 100000"
+                          {...field}
+                          value={field.value === 0 ? "" : field.value}
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              field.onChange(0);
+                            }
+                            field.onBlur();
+                          }}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -490,7 +611,14 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                           min="0"
                           placeholder="Number of bedrooms"
                           {...field}
-                          value={field.value ?? ''}
+                          value={field.value === 0 ? "" : field.value}
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              field.onChange(0);
+                            }
+                            field.onBlur();
+                          }}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                         />
                       </div>
                     </FormControl>
@@ -515,7 +643,14 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                           step="0.5"
                           placeholder="Number of bathrooms"
                           {...field}
-                          value={field.value ?? ''}
+                          value={field.value === 0 ? "" : field.value}
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              field.onChange(0);
+                            }
+                            field.onBlur();
+                          }}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                         />
                       </div>
                     </FormControl>
@@ -529,11 +664,25 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                 name="sqft"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel></FormLabel>
+                    <FormLabel>Area in Sqft</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <SquareCode className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" type="number" placeholder="e.g. 1200" min="0" {...field} />
+                        <Input 
+                          className="pl-10" 
+                          type="number" 
+                          placeholder="e.g. 1200" 
+                          min="0" 
+                          {...field}
+                          value={field.value === 0 ? "" : field.value}
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              field.onChange(0);
+                            }
+                            field.onBlur();
+                          }}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -667,65 +816,7 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                 )}
               />
             </div>
-          </div>
-
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              Property Images
-            </h3>
-
-            <div className="border-2 border-dashed border-input rounded-lg p-4">
-              <div className="flex flex-col items-center justify-center gap-2 py-4">
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-muted-foreground text-sm text-center">
-                  Drag &amp; drop your images here, or click to browse
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  type="button"
-                  disabled={uploadingImage}
-                >
-                  {uploadingImage ? "Uploading..." : "Select Images"}
-                </Button>
-                <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                />
-              </div>
-            </div>
-
-            {images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                {images.map((img, index) => (
-                  <div key={index} className="relative group rounded-md overflow-hidden aspect-square">
-                    <img src={img.url} alt={`Property ${index + 1}`} className="object-cover w-full h-full" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-background/80 text-destructive p-1 rounded-full group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-10 w-10" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  className="flex flex-col items-center justify-center border-2 border-dashed border-input rounded-md aspect-square hover:bg-secondary/50 transition-colors"
-                >
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add More</span>
-                </button>
-              </div>
-            )}
-          </div>
+          </div>     
         </div>
 
         <div className="flex justify-end gap-4">

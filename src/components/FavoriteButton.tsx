@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import useFavorites from '@/hooks/useFavorites';
 import mongoAuthService from '@/services/mongoAuthService';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +22,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { addToFavorites, removeFromFavorites, checkIsFavorite } = useFavorites();
+  const { addToFavorites, removeFromFavorites, checkIsFavorite, refreshFavorites } = useFavorites();
   const navigate = useNavigate();
 
   // Get icon size based on button size
@@ -77,12 +77,28 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
       if (isFavorite) {
         await removeFromFavorites(propertyId);
         setIsFavorite(false);
+        toast({
+          title: "Removed from favorites",
+          description: "Property has been removed from your favorites",
+        });
       } else {
         await addToFavorites(propertyId);
         setIsFavorite(true);
+        toast({
+          title: "Added to favorites",
+          description: "Property has been added to your favorites",
+        });
       }
+      
+      // Refresh favorites list in the app
+      refreshFavorites();
     } catch (error) {
       console.error('Error toggling favorite status:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem updating your favorites",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

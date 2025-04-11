@@ -132,6 +132,7 @@ const PropertiesTabContent = ({
     navigate(`/seller/dashboard?tab=analytics&property=${propertyId}`);
   };
 
+  console.log("filteredProperties  ",filteredProperties);
   return (
     <>
       <div
@@ -141,7 +142,8 @@ const PropertiesTabContent = ({
             : 'space-y-4'
         }
       >
-        {filteredProperties.map((property) => (
+        
+        {filteredProperties.map((property,index) => (
           <SellerPropertyCard
             key={property._id}
             property={{
@@ -153,7 +155,7 @@ const PropertiesTabContent = ({
               bedrooms: property.bedrooms,
               bathrooms: property.bathrooms,
               sqft: property.sqft || 0,
-              images: property.images || ['https://via.placeholder.com/400x300?text=No+Image'],
+              images: property.images|| ['https://via.placeholder.com/400x300?text=No+Image'],
               status: property.status,
               interestedUsers: property.interestedUsers || 0,
               viewCount: property.viewCount || 0,

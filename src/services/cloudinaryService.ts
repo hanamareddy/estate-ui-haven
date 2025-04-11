@@ -3,7 +3,7 @@ import api from './api';
 
 export const cloudinaryService = {
   // Upload a single image
-  uploadImage: async (file: File): Promise<{ imageUrl: string; public_id: string }> => {
+  uploadImage: async (file: File, p0: (progress: any) => void): Promise<{ imageUrl: string; public_id: string }> => {
     const formData = new FormData();
     formData.append('image', file);
 

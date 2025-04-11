@@ -1,29 +1,46 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { inquiryAPI } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from 'date-fns';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, Filter } from 'lucide-react';
 import { SellerInquiry } from '@/types/propertyInquiry';
 import { useNavigate } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
+import InquiryStatusFilter from './InquiryStatusFilter';
+import InquiryListItem from './inquiry/InquiryListItem';
+import InquiryDetailDialog from './inquiry/InquiryDetailDialog';
 
 const SellerInquiriesView = () => {
   const [sellerInquiries, setSellerInquiries] = useState<SellerInquiry[]>([]);
+  const [filteredInquiries, setFilteredInquiries] = useState<SellerInquiry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [responses, setResponses] = useState<Record<string, string>>({});
-  const [responding, setResponding] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedInquiry, setSelectedInquiry] = useState<SellerInquiry | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState<boolean>(false);
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+
+  // Count inquiries by status
+  const inquiryCounts = {
+    all: sellerInquiries.length,
+    pending: sellerInquiries.filter(inq => inq.status === 'pending').length,
+    responded: sellerInquiries.filter(inq => inq.status === 'responded').length,
+    closed: sellerInquiries.filter(inq => inq.status === 'closed').length
+  };
 
   useEffect(() => {
     fetchSellerInquiries();
   }, []);
+
+  // Apply filter when status filter or inquiries change
+  useEffect(() => {
+    if (statusFilter === 'all') {
+      setFilteredInquiries(sellerInquiries);
+    } else {
+      setFilteredInquiries(sellerInquiries.filter(inq => inq.status === statusFilter));
+    }
+  }, [statusFilter, sellerInquiries]);
 
   const fetchSellerInquiries = async () => {
     setLoading(true);
@@ -81,8 +98,8 @@ const SellerInquiriesView = () => {
           };
         }).filter(Boolean) as SellerInquiry[];
         
-        
         setSellerInquiries(formattedInquiries);
+        setFilteredInquiries(formattedInquiries);
       } else {
         throw new Error('Invalid response data format');
       }
@@ -99,41 +116,38 @@ const SellerInquiriesView = () => {
     }
   };
 
-  const handleResponseChange = (inquiryId: string, value: string) => {
-    setResponses(prev => ({ ...prev, [inquiryId]: value }));
-  };
-
-  const handleSendResponse = async (inquiryId: string) => {
-    if (!responses[inquiryId]?.trim()) return;
-    
-    setResponding(prev => ({ ...prev, [inquiryId]: true }));
-    
-    try {
-      await inquiryAPI.respondToInquiry(inquiryId, responses[inquiryId]);
-      // Clear response field after successful submission
-      setResponses(prev => ({ ...prev, [inquiryId]: '' }));
-      
-      // Refresh inquiries after response
-      fetchSellerInquiries();
-      
-      toast({
-        title: 'Response Sent',
-        description: 'Your response has been sent to the buyer.',
-      });
-    } catch (err: any) {
-      console.error('Error sending response:', err);
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to send response',
-        variant: 'destructive',
-      });
-    } finally {
-      setResponding(prev => ({ ...prev, [inquiryId]: false }));
-    }
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter);
   };
 
   const handleViewProperty = (propertyId: string) => {
     navigate(`/property/${propertyId}`);
+  };
+
+  const handleCloseInquiry = async (inquiryId: string) => {
+    try {
+      await inquiryAPI.updateInquiryStatus(inquiryId, 'closed');
+      toast({
+        title: 'Inquiry Closed',
+        description: 'The inquiry has been marked as closed.',
+      });
+      fetchSellerInquiries();
+    } catch (err: any) {
+      console.error('Error closing inquiry:', err);
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to close inquiry',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleViewInquiryDetail = (inquiryId: string) => {
+    const inquiry = sellerInquiries.find(inq => inq.id === inquiryId);
+    if (inquiry) {
+      setSelectedInquiry(inquiry);
+      setIsDetailDialogOpen(true);
+    }
   };
 
   if (loading) {
@@ -150,121 +164,63 @@ const SellerInquiriesView = () => {
       <Card>
         <CardHeader>
           <CardTitle>Error</CardTitle>
-          <CardDescription>
+          <CardContent>
             {error}
-          </CardDescription>
+          </CardContent>
         </CardHeader>
-        <CardFooter>
+        <CardContent>
           <Button onClick={fetchSellerInquiries}>Try Again</Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  if (sellerInquiries.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Property Inquiries</CardTitle>
-          <CardDescription>
-            You haven't received any property inquiries yet.
-          </CardDescription>
-        </CardHeader>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-2 mt-8">
       <h2 className="text-xl sm:text-2xl font-bold">Property Inquiries from Buyers</h2>
-      <div className="grid gap-4">
-        {sellerInquiries.map((inquiry) => (
-          <Card key={inquiry.id} className="overflow-hidden">
-            <CardHeader className="pb-2 px-4 sm:px-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                <div>
-                  <CardTitle className="text-lg line-clamp-1">{inquiry.property.title}</CardTitle>
-                  <CardDescription className="text-sm">{inquiry.property.location}</CardDescription>
-                </div>
-                <Badge
-                  className={`self-start ${
-                    inquiry.status === 'responded'
-                      ? 'bg-green-500'
-                      : inquiry.status === 'closed'
-                      ? 'bg-gray-500'
-                      : 'bg-yellow-500'
-                  }`}
-                >
-                  {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-6">
-              <div className="space-y-4">
-                <div className="bg-muted/30 p-3 rounded-md">
-                  <p className="text-sm font-medium">Buyer Information:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1 text-sm">
-                    <p>Name: <span className="font-medium">{inquiry.user.name}</span></p>
-                    <p>Email: <span className="font-medium break-all">{inquiry.user.email}</span></p>
-                    {inquiry.user.phone && (
-                      <p>Phone: <span className="font-medium">{inquiry.user.phone}</span></p>
-                    )}
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Inquiry:</p>
-                  <p className="text-sm border-l-2 border-muted pl-3 py-1">{inquiry.message}</p>
-                </div>
-                
-                {inquiry.sellerResponse ? (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Your response:</p>
-                    <p className="text-sm border-l-2 border-green-500 bg-green-50 pl-3 py-2 rounded">
-                      {inquiry.sellerResponse}
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm font-medium mb-1">Respond to inquiry:</p>
-                    <Textarea
-                      value={responses[inquiry.id] || ''}
-                      onChange={(e) => handleResponseChange(inquiry.id, e.target.value)}
-                      placeholder="Type your response here..."
-                      className="mb-2 resize-none"
-                      rows={isMobile ? 3 : 4}
-                    />
-                    <Button 
-                      size="sm"
-                      onClick={() => handleSendResponse(inquiry.id)}
-                      disabled={!responses[inquiry.id]?.trim() || responding[inquiry.id]}
-                      className="w-full sm:w-auto"
-                    >
-                      {responding[inquiry.id] ? 'Sending...' : 'Send Response'}
-                    </Button>
-                  </div>
-                )}
-                
-                <p className="text-xs text-muted-foreground text-right">
-                  Received {formatDistanceToNow(new Date(inquiry.createdAt))} ago
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="px-4 sm:px-6 pt-0">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="ml-auto gap-2"
-                onClick={() => handleViewProperty(inquiry.property.id)}
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span className="hidden sm:inline">View Property</span>
-                <span className="sm:hidden">View</span>
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+      
+      <InquiryStatusFilter 
+        activeFilter={statusFilter}
+        onFilterChange={handleFilterChange}
+        counts={inquiryCounts}
+      />
+      
+      {filteredInquiries.length === 0 ? (
+        <Card className="text-center p-8">
+          <CardContent className="pt-6">
+            <Filter className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-lg font-medium mb-2">No {statusFilter} inquiries found</p>
+            <p className="text-muted-foreground">
+              There are no inquiries with the selected status. Try changing your filter.
+            </p>
+          </CardContent>
+          <div className="flex justify-center pt-4">
+            <Button variant="outline" onClick={() => setStatusFilter('all')}>Show All Inquiries</Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-1">
+          {filteredInquiries.map((inquiry) => (
+            <InquiryListItem
+              key={inquiry.id}
+              inquiry={inquiry}
+              onViewDetail={handleViewInquiryDetail}
+              onViewProperty={handleViewProperty}
+              onCloseInquiry={handleCloseInquiry}
+            />
+          ))}
+        </div>
+      )}
+
+      {selectedInquiry && (
+        <InquiryDetailDialog
+          inquiry={selectedInquiry}
+          isOpen={isDetailDialogOpen}
+          onClose={() => setIsDetailDialogOpen(false)}
+          onPropertyClick={handleViewProperty}
+          onUpdateSuccess={fetchSellerInquiries}
+        />
+      )}
     </div>
   );
 };

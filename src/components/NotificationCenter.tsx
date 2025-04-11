@@ -1,148 +1,126 @@
 
-import React, { useState } from 'react';
-import { useNotifications, Notification } from '@/hooks/useNotifications';
+import React, { useCallback, memo } from 'react';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle,
+  SheetTrigger
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from '@/components/ui/popover';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, CheckCheck, Loader2, MailOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import NotificationIndicator from './NotificationIndicator';
+import { Bell, Check, Trash2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
+import useNotifications from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 
-const NotificationCenter = () => {
-  const [open, setOpen] = useState(false);
+export interface NotificationCenterProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// Use memo to prevent unnecessary re-renders
+const NotificationCenter: React.FC<NotificationCenterProps> = memo(({ isOpen, onClose }) => {
   const { 
     notifications, 
-    unreadCount, 
     loading, 
-    markAsRead, 
-    markAllAsRead 
+    error, 
+    markAllAsRead, 
+    markAsRead,
+    unreadCount 
   } = useNotifications();
 
-  const handleMarkAsRead = async (id: string) => {
-    await markAsRead(id);
-  };
-
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = useCallback(async () => {
     await markAllAsRead();
-    setOpen(false);
-  };
+  }, [markAllAsRead]);
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'message':
-        return <MailOpen className="h-5 w-5 text-accent" />;
-      case 'property':
-        return <Bell className="h-5 w-5 text-green-500" />;
-      case 'alert':
-        return <Bell className="h-5 w-5 text-orange-500" />;
-      default:
-        return <Bell className="h-5 w-5 text-accent" />;
-    }
-  };
+  const handleNotificationClick = useCallback(async (id: string) => {
+    await markAsRead(id);
+  }, [markAsRead]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 min-w-5 h-5 p-0 flex items-center justify-center">
-              {unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <Card className="border-0">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">Notifications</CardTitle>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-md">
+        <SheetHeader className="pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center">
+              <Bell className="mr-2 h-5 w-5" />
+              Notifications
               {unreadCount > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleMarkAllAsRead} 
-                  className="h-8"
-                >
-                  <CheckCheck className="h-4 w-4 mr-1" />
-                  Mark all read
-                </Button>
+                <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
               )}
-            </div>
-            <CardDescription>
-              {unreadCount === 0 
-                ? "You're all caught up" 
-                : `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
-            </CardDescription>
-          </CardHeader>
-          <Separator />
+            </SheetTitle>
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleMarkAllAsRead}
+                className="text-xs"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Mark all as read
+              </Button>
+            )}
+          </div>
+        </SheetHeader>
+        
+        <div className="mt-4 flex flex-col space-y-4 max-h-[80vh] overflow-y-auto pr-2">
           {loading ? (
-            <CardContent className="h-64 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </CardContent>
-          ) : notifications.length === 0 ? (
-            <CardContent className="h-64 flex flex-col items-center justify-center text-center p-6">
-              <Bell className="h-12 w-12 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                You don't have any notifications yet
-              </p>
-            </CardContent>
-          ) : (
-            <ScrollArea className="h-[300px]">
-              {notifications.map((notification: Notification) => (
-                <div key={notification.id} className="border-b last:border-0">
-                  <CardContent className={`p-3 ${!notification.read ? 'bg-accent/5' : ''}`}>
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-sm font-medium">{notification.title}</h4>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                        {!notification.read && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleMarkAsRead(notification.id)} 
-                            className="mt-2 h-7 text-xs"
-                          >
-                            Mark as read
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="flex gap-4 items-start">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
                 </div>
-              ))}
-            </ScrollArea>
+              </div>
+            ))
+          ) : error ? (
+            <div className="text-center py-4 text-red-500">
+              Failed to load notifications.
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Bell className="mx-auto h-10 w-10 opacity-20 mb-2" />
+              <p>You don't have any notifications yet.</p>
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <div 
+                key={notification.id} 
+                className={`p-3 rounded-lg border ${notification.read ? 'bg-background' : 'bg-accent/5 border-accent/20'}`}
+                onClick={() => !notification.read && handleNotificationClick(notification.id)}
+              >
+                <div className="flex justify-between items-start">
+                  <h4 className={`text-sm font-medium ${notification.read ? 'text-muted-foreground' : 'text-foreground'}`}>
+                    {notification.title}
+                  </h4>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className={`text-xs mt-1 ${notification.read ? 'text-muted-foreground' : 'text-foreground'}`}>
+                  {notification.message}
+                </p>
+              </div>
+            ))
           )}
-          <CardFooter className="p-2 pt-0">
-            <Button variant="outline" size="sm" className="w-full text-xs">
-              View all notifications
+        </div>
+        
+        {notifications.length > 0 && (
+          <div className="mt-4 pt-4 border-t">
+            <Button variant="outline" size="sm" className="w-full">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All Notifications
             </Button>
-          </CardFooter>
-        </Card>
-      </PopoverContent>
-    </Popover>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
   );
-};
+});
+
+NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;

@@ -21,6 +21,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import mongoAuthService from "./services/mongoAuthService";
 import MobileNavBar from "./components/MobileNavBar";
+import SellerLeads from '@/components/SellerLeads';
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="seller">
                   <SellerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/leads" 
+              element={
+                <ProtectedRoute requiredRole="seller">
+                  <SellerLeads/>
                 </ProtectedRoute>
               } 
             />

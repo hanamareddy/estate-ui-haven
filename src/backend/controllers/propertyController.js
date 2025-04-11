@@ -76,19 +76,34 @@ const getPropertyById = async (req, res) => {
 const createProperty = async (req, res) => {
   try {
     const propertyData = req.body;
-    
-    // Add seller information from authenticated user
+
+    // 🔍 Log the raw request body
+    console.log('📥 Received property data from client:', propertyData);
+
+    // 🔍 Log the authenticated user info (should be set via middleware)
+    console.log('👤 Authenticated user from req.user:', req.user);
+
+    // Construct the property object with additional seller info
     const newProperty = new Property({
       ...propertyData,
       sellerId: req.user._id,
       sellerEmail: req.user.email,
       sellerContact: propertyData.sellerContact || req.user.phone || ''
     });
-    
+
+    // 🔍 Log the property object before saving
+    console.log('📦 Final property object to be saved:', newProperty);
+
     const savedProperty = await newProperty.save();
+
+    // ✅ Log the successfully saved property
+    console.log('✅ Property saved successfully:', savedProperty);
+
     res.status(201).json(savedProperty);
   } catch (error) {
-    console.error('Error creating property:', error);
+    // ❌ Log detailed error
+    console.error('❌ Error creating property:', error.message);
+    console.error('🧵 Stack trace:', error.stack);
     res.status(400).json({ message: error.message });
   }
 };

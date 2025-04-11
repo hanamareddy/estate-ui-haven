@@ -135,7 +135,10 @@ const Navbar = ({
                     </Button>
                   </SheetTrigger>
                   <SheetContent>
-                    <NotificationCenter />
+                    <NotificationCenter 
+                      isOpen={notificationOpen} 
+                      onClose={() => setNotificationOpen(false)} 
+                    />
                   </SheetContent>
                 </Sheet>
                 

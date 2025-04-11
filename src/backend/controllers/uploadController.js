@@ -1,6 +1,4 @@
-
 const cloudinary = require('../config/cloudinary');
-const fs = require('fs');
 
 // Upload a single image
 const uploadSingleImage = async (req, res) => {
@@ -9,17 +7,20 @@ const uploadSingleImage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'estateHub/properties',
-      use_filename: true,
-      unique_filename: true,
+    // Upload buffer to Cloudinary using upload_stream
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream({
+        folder: 'estateHub/properties',
+        use_filename: true,
+        unique_filename: true,
+      }, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+
+      stream.end(req.file.buffer);
     });
 
-    // Delete the local file after upload
-    fs.unlinkSync(req.file.path);
-
-    // Return the Cloudinary URL
     res.status(200).json({
       success: true,
       imageUrl: result.secure_url,
@@ -38,21 +39,23 @@ const uploadMultipleImages = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No files uploaded' });
     }
 
-    const uploadPromises = req.files.map(file => 
-      cloudinary.uploader.upload(file.path, {
-        folder: 'estateHub/properties',
-        use_filename: true,
-        unique_filename: true,
+    const uploadPromises = req.files.map(file =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({
+          folder: 'estateHub/properties',
+          use_filename: true,
+          unique_filename: true,
+        }, (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        });
+
+        stream.end(file.buffer);
       })
     );
 
-    // Upload all files to Cloudinary
     const results = await Promise.all(uploadPromises);
 
-    // Delete all local files after upload
-    req.files.forEach(file => fs.unlinkSync(file.path));
-
-    // Return array of Cloudinary URLs
     const imageUrls = results.map(result => ({
       url: result.secure_url,
       public_id: result.public_id
@@ -72,10 +75,9 @@ const uploadMultipleImages = async (req, res) => {
 const deleteImage = async (req, res) => {
   try {
     const { public_id } = req.params;
-    
-    // Delete from Cloudinary
+
     const result = await cloudinary.uploader.destroy(public_id);
-    
+
     if (result.result === 'ok') {
       res.status(200).json({
         success: true,

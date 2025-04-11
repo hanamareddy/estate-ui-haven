@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
     'process.env': {},
     'process.browser': true,
     'process.version': '"v16.0.0"',
-    'process.nextTick': '((cb) => setTimeout(cb, 0))'
+    // 'process.nextTick': '((cb) => setTimeout(cb, 0))'
   },
   optimizeDeps: {
     esbuildOptions: {
