@@ -67,8 +67,8 @@ export const propertyAPI = {
   updateProperty: (id: string, propertyData: any) => api.put(`/properties/${id}`, propertyData),
   deleteProperty: (id: string) => api.delete(`/properties/${id}`),
   getSellerProperties: () => api.get('/properties/myseller/properties'),
-  // Add missing analytics method
-  getAnalytics: (propertyId?: string) => api.get('/properties/analytics', { params: { propertyId } }),
+  // Update analytics endpoint to match the backend route
+  getAnalytics: (propertyId?: string) => api.get('/properties/analytics/data', { params: { propertyId } }),
 };
 
 // Property inquiries API functions

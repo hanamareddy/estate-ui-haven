@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { propertyAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
@@ -33,7 +34,8 @@ export const usePropertyAPI = () => {
   // Get a single property - as a function (not a hook)
   const getProperty = async (id: string) => {
     try {
-      return await propertyAPI.getProperty(id);
+      const response = await propertyAPI.getProperty(id);
+      return response;
     } catch (error) {
       console.error("Error fetching property:", error);
       throw error;

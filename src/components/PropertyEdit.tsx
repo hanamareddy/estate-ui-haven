@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { usePropertyAPI } from '@/hooks/usePropertyAPI';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,6 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       const fetchProperty = async () => {
         setIsLoading(true);
         try {
-          // getProperty only expects one argument now
           const response = await getProperty(propertyId);
           if (response && response.data) {
             setProperty(response.data);
@@ -159,7 +157,6 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     );
   }
 
-  // Format the property data for the form
   const formattedProperty = {
     title: property.title,
     description: property.description,
@@ -169,11 +166,11 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     state: property.state,
     zipcode: property.pincode,
     type: property.type.toLowerCase(),
-    bedrooms: String(property.bedrooms),
-    bathrooms: String(property.bathrooms),
+    bedrooms: Number(property.bedrooms),
+    bathrooms: Number(property.bathrooms),
     size: String(property.sqft),
-    sqft: Number(property.sqft), // Make sure sqft is a number
-    price: Number(property.price), // Make sure price is a number
+    sqft: Number(property.sqft),
+    price: Number(property.price),
     yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
     amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",
     status: property.status,
