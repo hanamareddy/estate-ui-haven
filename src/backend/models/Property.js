@@ -14,7 +14,8 @@ const PropertySchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: true
+    required: true,
+    min: [1, 'Price must be greater than 0']
   },
   type: {
     type: String,
@@ -23,15 +24,24 @@ const PropertySchema = new mongoose.Schema({
   },
   bedrooms: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   bathrooms: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   sqft: {
     type: Number,
-    required: true
+    required: true,
+    min: [1, 'Square footage must be greater than 0'],
+    validate: {
+      validator: function(v) {
+        return v > 0;
+      },
+      message: props => `${props.value} is not a valid square footage. Must be greater than 0.`
+    }
   },
   images: [{
     url: {
@@ -118,6 +128,21 @@ const PropertySchema = new mongoose.Schema({
 // Update the updatedAt value before saving
 PropertySchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  next();
+});
+
+// Add a custom validation for sqft before saving
+PropertySchema.pre('save', function(next) {
+  // Convert string to number if needed
+  if (typeof this.sqft === 'string') {
+    this.sqft = Number(this.sqft);
+  }
+  
+  // Validate sqft is a number and greater than 0
+  if (isNaN(this.sqft) || this.sqft <= 0) {
+    return next(new Error('Square footage must be a valid number greater than 0'));
+  }
+  
   next();
 });
 

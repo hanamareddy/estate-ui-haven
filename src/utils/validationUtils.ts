@@ -27,6 +27,12 @@ export const isValidPrice = (price: number): boolean => {
   return !isNaN(price) && price > 0;
 };
 
+// Square footage validation
+export const isValidSqft = (sqft: number | string): boolean => {
+  const parsedSqft = typeof sqft === 'string' ? parseFloat(sqft) : sqft;
+  return !isNaN(parsedSqft) && parsedSqft > 0;
+};
+
 // Text field validation with min/max length
 export const isValidText = (text: string, minLength = 1, maxLength = 1000): boolean => {
   return text.length >= minLength && text.length <= maxLength;
@@ -62,14 +68,17 @@ export const validatePropertyForm = (formData: any): { isValid: boolean; errors:
     errors.type = 'Property type is required';
   
   // Optional fields validation
-  if (formData.bedrooms !== undefined && formData.bedrooms < 0)
-    errors.bedrooms = 'Bedrooms cannot be negative';
+  if (formData.bedrooms !== undefined && (isNaN(Number(formData.bedrooms)) || Number(formData.bedrooms) < 0))
+    errors.bedrooms = 'Bedrooms must be a valid number (0 or greater)';
   
-  if (formData.bathrooms !== undefined && formData.bathrooms < 0)
-    errors.bathrooms = 'Bathrooms cannot be negative';
+  if (formData.bathrooms !== undefined && (isNaN(Number(formData.bathrooms)) || Number(formData.bathrooms) < 0))
+    errors.bathrooms = 'Bathrooms must be a valid number (0 or greater)';
   
-  if (formData.sqft !== undefined && formData.sqft <= 0)
-    errors.sqft = 'Square footage must be greater than zero';
+  // Improved sqft validation
+  if (formData.sqft === undefined || formData.sqft === null || formData.sqft === '')
+    errors.sqft = 'Square footage is required';
+  else if (!isValidSqft(formData.sqft))
+    errors.sqft = 'Square footage must be a valid number greater than zero';
   
   if (formData.description && formData.description.length < 20)
     errors.description = 'Description should be at least 20 characters';
