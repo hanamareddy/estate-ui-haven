@@ -208,10 +208,8 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
   };
 
   const handleSubmit = async (values: PropertyFormValues) => {
-    // Create an array to store missing fields
     const missingFields: string[] = [];
 
-    // Check required fields
     if (!values.title || values.title.length < 5) missingFields.push("Title");
     if (!values.address || values.address.length < 5) missingFields.push("Address");
     if (!values.price || values.price <= 0) missingFields.push("Price");
@@ -222,10 +220,8 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
     if (!values.sellerContact || values.sellerContact.length < 10) missingFields.push("Contact Number");
     if (images.length === 0) missingFields.push("Property Images");
 
-    // If there are missing fields, show appropriate toast message
     if (missingFields.length > 0) {
       if (missingFields.length <= 3) {
-        // Show specific fields if 3 or fewer are missing
         toast({
           title: "Required Fields Missing",
           description: `Please fill in the following: ${missingFields.join(", ")}`,
@@ -233,7 +229,6 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
           duration: 5000,
         });
       } else {
-        // Show general message if more than 3 fields are missing
         toast({
           title: "Warning",
           description: `Please fill in all required fields (${missingFields.length} fields missing)`,
@@ -244,14 +239,23 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
       return;
     }
 
-    // Continue with form submission if all required fields are filled
     const normalizedValues = {
       ...values,
-      sqft: Number(values.sqft),
-      price: Number(values.price),
+      sqft: Number(values.sqft) || 0,
+      price: Number(values.price) || 0,
       bedrooms: Number(values.bedrooms) || 0,
       bathrooms: Number(values.bathrooms) || 0,
     };
+
+    if (normalizedValues.sqft <= 0) {
+      toast({
+        title: "Invalid Value",
+        description: "Property size (sqft) must be greater than 0",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
 
     const submissionData = {
       ...normalizedValues,
@@ -270,7 +274,7 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
         title: "Error",
         description: errorMessage,
         variant: "destructive",
-        duration: 1000,
+        duration: 5000,
       });
     }
   };
@@ -672,7 +676,7 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                           className="pl-10" 
                           type="number" 
                           placeholder="e.g. 1200" 
-                          min="0" 
+                          min="1" 
                           {...field}
                           value={field.value === 0 ? "" : field.value}
                           onBlur={(e) => {
@@ -681,7 +685,10 @@ const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormPro
                             }
                             field.onBlur();
                           }}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                          onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : 0;
+                            field.onChange(value);
+                          }}
                         />
                       </div>
                     </FormControl>

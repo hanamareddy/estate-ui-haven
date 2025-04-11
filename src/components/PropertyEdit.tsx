@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { usePropertyAPI } from '@/hooks/usePropertyAPI';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,11 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import PropertyForm from '@/components/property/PropertyForm';
 import cloudinaryService from '@/services/cloudinaryService';
+
+interface PropertyImage {
+  url: string;
+  public_id: string;
+}
 
 interface PropertyEditProps {
   propertyId: string;
@@ -86,6 +92,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
         }
       }
       
+      // Ensure all numeric values are properly converted
       const updatedData = {
         title: data.title,
         description: data.description,
@@ -94,15 +101,25 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
         state: data.state,
         pincode: data.zipcode,
         type: data.type,
-        bedrooms: Number(data.bedrooms),
-        bathrooms: Number(data.bathrooms),
-        sqft: Number(data.size),
-        price: Number(data.price),
+        bedrooms: Number(data.bedrooms) || 0,
+        bathrooms: Number(data.bathrooms) || 0,
+        sqft: Number(data.sqft) || Number(data.size) || 0, // Check both sqft and size to ensure backwards compatibility
+        price: Number(data.price) || 0,
         constructionYear: data.yearbuilt,
         amenities: data.amenities,
         status: data.status,
         images: processedImages
       };
+
+      // Validation for sqft
+      if (!updatedData.sqft || updatedData.sqft <= 0) {
+        toast({
+          title: "Error",
+          description: "Property size (sqft) is required and must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
       
       await updateMutation.mutateAsync({ id: propertyId, data: updatedData });
       toast({
@@ -168,7 +185,8 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     type: property.type.toLowerCase(),
     bedrooms: String(property.bedrooms),
     bathrooms: String(property.bathrooms),
-    size: String(property.sqft),
+    size: String(property.sqft), // Use size for backwards compatibility
+    sqft: property.sqft, // Also provide sqft directly
     price: String(property.price),
     yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
     amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",

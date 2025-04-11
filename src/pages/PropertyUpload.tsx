@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import PropertyForm from "@/components/property/PropertyForm";
 import { toast } from "@/hooks/use-toast";
 import usePropertyAPI from "@/hooks/usePropertyAPI";
-import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import MobileNavBar from '@/components/MobileNavBar';
 import mongoAuthService from "@/services/mongoAuthService";
@@ -32,13 +31,25 @@ const PropertyUpload = () => {
         ...formData,
         bedrooms: Number(formData.bedrooms),
         bathrooms: Number(formData.bathrooms),
-        sqft: Number(formData.size),
+        sqft: Number(formData.sqft), // Ensure sqft is a valid number
         price: Number(formData.price),
         constructionYear: formData.yearbuilt,
         sellerId: user.id,
         sellerContact: user.phone || '',
         sellerEmail: user.email || '',
       };
+      
+      // Validation for sqft
+      if (!propertyData.sqft || isNaN(propertyData.sqft) || propertyData.sqft <= 0) {
+        toast({
+          title: "Error",
+          description: "Property size (sqft) is required and must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Submitting property data:", propertyData);
       
       await createPropertyMutation.mutateAsync(propertyData);
       toast({
