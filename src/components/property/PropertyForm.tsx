@@ -42,10 +42,6 @@ const propertyFormSchema = z.object({
   constructionYear: z.string().optional(),
   sellerContact: z.string().min(10, "Contact number is required"),
   sellerEmail: z.string().email("Invalid email address").optional(),
-  location: z.string().optional(),
-  zipcode: z.string().optional(),
-  size: z.string().optional(),
-  yearbuilt: z.string().optional(),
 });
 
 type PropertyFormValues = z.infer<typeof propertyFormSchema>;
@@ -77,17 +73,12 @@ interface PropertyFormProps {
     sellerContact?: string;
     sellerEmail?: string;
     amenities?: string[];
-    location?: string;
-    zipcode?: string;
-    size?: string;
-    yearbuilt?: string;
   };
   onSubmit: (data: PropertyFormValues & { images: PropertyImage[]; amenities: string[] }) => void;
-  onCancel?: () => void;
   isLoading?: boolean;
 }
 
-const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: PropertyFormProps) => {
+const PropertyForm = ({ property, onSubmit, isLoading = false }: PropertyFormProps) => {
   const normalizeImages = (images?: PropertyImage[] | string[]): PropertyImage[] => {
     if (!images) return [];
 
@@ -115,16 +106,16 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
       price: property.price || 0,
       bedrooms: property.bedrooms || 0,
       bathrooms: property.bathrooms || 0,
-      sqft: property.sqft || (property.size ? Number(property.size) : 0),
+      sqft: property.sqft || 0,
       type: property.type as "House" | "Apartment" | "Land" | "Villa" | "Builder Floor" | "Farmhouse" | "PG",
       status: property.status as "active" | "inactive",
       propertyStatus: (property.propertyStatus as "Ready to Move" | "Under Construction" | "Resale") || "Ready to Move",
       description: property.description || `${property.bedrooms || 0}-BHK, ${property.type || "apartment"} with ${property.sqft || 0} sq ft area located in ${property.city || "great neighborhood"}, offering comfortable living and quality amenities.`,
       state: property.state || "",
       city: property.city || "",
-      pincode: property.pincode || property.zipcode || "",
+      pincode: property.pincode || "",
       furnished: (property.furnished as "Fully Furnished" | "Semi Furnished" | "Unfurnished") || "Unfurnished",
-      constructionYear: property.constructionYear || property.yearbuilt || "",
+      constructionYear: property.constructionYear || "",
       sellerContact: property.sellerContact || "",
       sellerEmail: property.sellerEmail || "",
     } : {
@@ -217,8 +208,10 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
   };
 
   const handleSubmit = async (values: PropertyFormValues) => {
+    // Create an array to store missing fields
     const missingFields: string[] = [];
 
+    // Check required fields
     if (!values.title || values.title.length < 5) missingFields.push("Title");
     if (!values.address || values.address.length < 5) missingFields.push("Address");
     if (!values.price || values.price <= 0) missingFields.push("Price");
@@ -229,8 +222,10 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
     if (!values.sellerContact || values.sellerContact.length < 10) missingFields.push("Contact Number");
     if (images.length === 0) missingFields.push("Property Images");
 
+    // If there are missing fields, show appropriate toast message
     if (missingFields.length > 0) {
       if (missingFields.length <= 3) {
+        // Show specific fields if 3 or fewer are missing
         toast({
           title: "Required Fields Missing",
           description: `Please fill in the following: ${missingFields.join(", ")}`,
@@ -238,6 +233,7 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
           duration: 5000,
         });
       } else {
+        // Show general message if more than 3 fields are missing
         toast({
           title: "Warning",
           description: `Please fill in all required fields (${missingFields.length} fields missing)`,
@@ -248,6 +244,7 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
       return;
     }
 
+    // Continue with form submission if all required fields are filled
     const normalizedValues = {
       ...values,
       sqft: Number(values.sqft),
@@ -823,11 +820,9 @@ const PropertyForm = ({ property, onSubmit, onCancel, isLoading = false }: Prope
         </div>
 
         <div className="flex justify-end gap-4">
-          {onCancel && (
-            <Button variant="outline" type="button" onClick={onCancel}>
-              Cancel
-            </Button>
-          )}
+          <Button variant="outline" type="button" onClick={() => window.history.back()}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving..." : property?.id ? "Update Property" : "Add Property"}
           </Button>

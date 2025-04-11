@@ -34,8 +34,7 @@ export const usePropertyAPI = () => {
   // Get a single property - as a function (not a hook)
   const getProperty = async (id: string) => {
     try {
-      const response = await propertyAPI.getProperty(id);
-      return response;
+      return await propertyAPI.getProperty(id);
     } catch (error) {
       console.error("Error fetching property:", error);
       throw error;
@@ -125,17 +124,6 @@ export const usePropertyAPI = () => {
     });
   };
 
-  // Get analytics data for properties
-  const usePropertyAnalytics = () => {
-    return useQuery({
-      queryKey: ['propertyAnalytics'],
-      queryFn: async () => {
-        const response = await propertyAPI.getAnalytics();
-        return response.data;
-      },
-    });
-  };
-
   return {
     useProperties,
     useProperty,
@@ -144,7 +132,6 @@ export const usePropertyAPI = () => {
     useUpdateProperty,
     useDeleteProperty,
     useSellerProperties,
-    usePropertyAnalytics,
   };
 };
 

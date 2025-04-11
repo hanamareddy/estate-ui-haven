@@ -27,20 +27,18 @@ const PropertyUpload = () => {
         return;
       }
       
-      // Process form data for API - ensure numeric values are properly converted
+      // Process form data for API
       const propertyData = {
         ...formData,
-        bedrooms: Number(formData.bedrooms) || 0,
-        bathrooms: Number(formData.bathrooms) || 0,
-        sqft: Number(formData.size) || 0, // Convert to number and provide fallback
-        price: Number(formData.price) || 0,
+        bedrooms: Number(formData.bedrooms),
+        bathrooms: Number(formData.bathrooms),
+        sqft: Number(formData.size),
+        price: Number(formData.price),
         constructionYear: formData.yearbuilt,
         sellerId: user.id,
         sellerContact: user.phone || '',
         sellerEmail: user.email || '',
       };
-      
-      console.log("Property data being sent to API:", propertyData); // Debug data before sending
       
       await createPropertyMutation.mutateAsync(propertyData);
       toast({
@@ -71,7 +69,9 @@ const PropertyUpload = () => {
         
         <PropertyForm 
           onSubmit={handleSubmit}
-          isLoading={createPropertyMutation.isPending}
+          isSubmitting={createPropertyMutation.isPending}
+          submitButtonText="Create Property"
+          cancelButtonText="Cancel"
           onCancel={() => navigate('/seller/dashboard')}
         />
       </div>

@@ -166,11 +166,10 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     state: property.state,
     zipcode: property.pincode,
     type: property.type.toLowerCase(),
-    bedrooms: Number(property.bedrooms),
-    bathrooms: Number(property.bathrooms),
+    bedrooms: String(property.bedrooms),
+    bathrooms: String(property.bathrooms),
     size: String(property.sqft),
-    sqft: Number(property.sqft),
-    price: Number(property.price),
+    price: String(property.price),
     yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
     amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",
     status: property.status,
@@ -206,10 +205,12 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       
       <CardContent className="p-4 sm:p-6">
         <PropertyForm 
-          property={formattedProperty}
+          initialData={formattedProperty}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          isLoading={updateMutation.isPending}
+          isSubmitting={updateMutation.isPending}
+          submitButtonText="Save Changes"
+          cancelButtonText="Cancel"
         />
       </CardContent>
     </Card>

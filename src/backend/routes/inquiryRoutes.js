@@ -16,7 +16,4 @@ router.get('/seller', authenticateUser, inquiryController.getSellerInquiries);
 // Respond to an inquiry (for sellers)
 router.post('/:inquiryId/respond', authenticateUser, inquiryController.respondToInquiry);
 
-// Update inquiry status (for sellers)
-router.put('/:inquiryId/status', authenticateUser, inquiryController.updateInquiryStatus);
-
 module.exports = router;

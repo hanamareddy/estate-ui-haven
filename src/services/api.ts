@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import mongoAuthService from './mongoAuthService';
 
@@ -67,40 +68,16 @@ export const propertyAPI = {
   updateProperty: (id: string, propertyData: any) => api.put(`/properties/${id}`, propertyData),
   deleteProperty: (id: string) => api.delete(`/properties/${id}`),
   getSellerProperties: () => api.get('/properties/myseller/properties'),
-  // Update analytics endpoint to match the backend route
-  getAnalytics: (propertyId?: string) => api.get('/properties/analytics/data', { params: { propertyId } }),
 };
 
-// Property inquiries API functions
+// API endpoints for Inquiries
 export const inquiryAPI = {
-  // Create a new inquiry
-  createInquiry: async (propertyId, message, contactDetails = {}) => {
-    return await api.post('/inquiries', {
-      propertyId,
-      message,
-      ...contactDetails
-    });
-  },
-  
-  // Get all inquiries for the current user
-  getUserInquiries: async () => {
-    return await api.get('/inquiries/user');
-  },
-  
-  // Get all inquiries for the seller's properties
-  getSellerInquiries: async () => {
-    return await api.get('/inquiries/seller');
-  },
-  
-  // Respond to an inquiry
-  respondToInquiry: async (inquiryId, response) => {
-    return await api.post(`/inquiries/${inquiryId}/respond`, { response });
-  },
-  
-  // Update inquiry status
-  updateInquiryStatus: async (inquiryId, status) => {
-    return await api.put(`/inquiries/${inquiryId}/status`, { status });
-  }
+  createInquiry: (propertyId: string, message: string, contactDetails?: any) => 
+    api.post('/inquiries', { propertyId, message, contactDetails }),
+  getUserInquiries: () => api.get('/inquiries/user'),
+  getSellerInquiries: () => api.get('/inquiries/seller'),
+  respondToInquiry: (inquiryId: string, response: string) => 
+    api.post(`/inquiries/${inquiryId}/respond`, { response }),
 };
 
 // Export the default API client

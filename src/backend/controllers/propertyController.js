@@ -1,3 +1,4 @@
+
 const Property = require('../models/Property');
 const cloudinary = require('../config/cloudinary');
 
@@ -223,74 +224,6 @@ const getSellerProperties = async (req, res) => {
   }
 };
 
-// Get analytics data for properties
-const getAnalytics = async (req, res) => {
-  try {
-    // Get user ID from authenticated user
-    const sellerId = req.user._id;
-    
-    // Find all properties by this seller
-    const properties = await Property.find({ sellerId });
-    
-    // Calculate basic analytics
-    const totalProperties = properties.length;
-    const activeProperties = properties.filter(p => p.status === 'active').length;
-    const inactiveProperties = properties.filter(p => p.status === 'inactive').length;
-    const totalValue = properties.reduce((sum, property) => sum + (property.price || 0), 0);
-    
-    // Count properties by type
-    const typeBreakdown = {};
-    properties.forEach(property => {
-      const type = property.type || 'unknown';
-      typeBreakdown[type] = (typeBreakdown[type] || 0) + 1;
-    });
-    
-    // Count properties by city
-    const cityBreakdown = {};
-    properties.forEach(property => {
-      const city = property.city || 'unknown';
-      cityBreakdown[city] = (cityBreakdown[city] || 0) + 1;
-    });
-    
-    // Monthly counts (last 6 months)
-    const now = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(now.getMonth() - 5);
-    
-    const monthlyCounts = [];
-    
-    for (let i = 0; i < 6; i++) {
-      const month = new Date(sixMonthsAgo);
-      month.setMonth(sixMonthsAgo.getMonth() + i);
-      
-      const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-      const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-      
-      const count = properties.filter(p => {
-        const createdAt = new Date(p.createdAt);
-        return createdAt >= monthStart && createdAt <= monthEnd;
-      }).length;
-      
-      monthlyCounts.push({
-        month: month.toLocaleString('default', { month: 'short' }),
-        count
-      });
-    }
-    
-    res.json({
-      totalProperties,
-      activeProperties,
-      inactiveProperties,
-      totalValue,
-      typeBreakdown,
-      cityBreakdown,
-      monthlyCounts
-    });
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    res.status(500).json({ message: error.message });
-  }
-};
 
 module.exports = {
   getAllProperties,
@@ -299,6 +232,5 @@ module.exports = {
   updateProperty,
   deleteProperty,
   getPropertyBySellerId,
-  getSellerProperties,
-  getAnalytics
+  getSellerProperties
 };
