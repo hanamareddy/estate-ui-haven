@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { usePropertyAPI } from '@/hooks/usePropertyAPI';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       const fetchProperty = async () => {
         setIsLoading(true);
         try {
+          // Fix here: Add proper error handling for the second parameter
           const response = await getProperty(propertyId);
           if (response && response.data) {
             setProperty(response.data);
@@ -205,12 +207,10 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       
       <CardContent className="p-4 sm:p-6">
         <PropertyForm 
-          initialData={formattedProperty}
+          property={formattedProperty}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          isSubmitting={updateMutation.isPending}
-          submitButtonText="Save Changes"
-          cancelButtonText="Cancel"
+          isLoading={updateMutation.isPending}
         />
       </CardContent>
     </Card>

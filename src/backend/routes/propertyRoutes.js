@@ -25,4 +25,7 @@ router.get('/seller/:sellerId', propertyController.getPropertyBySellerId);
 // Get properties by current authenticated seller
 router.get('/myseller/properties', authenticateUser, propertyController.getSellerProperties);
 
+// Get analytics data
+router.get('/analytics', authenticateUser, propertyController.getAnalytics);
+
 module.exports = router;

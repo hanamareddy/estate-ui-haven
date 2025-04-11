@@ -68,6 +68,8 @@ export const propertyAPI = {
   updateProperty: (id: string, propertyData: any) => api.put(`/properties/${id}`, propertyData),
   deleteProperty: (id: string) => api.delete(`/properties/${id}`),
   getSellerProperties: () => api.get('/properties/myseller/properties'),
+  // Add missing analytics method
+  getAnalytics: (propertyId?: string) => api.get('/properties/analytics', { params: { propertyId } }),
 };
 
 // API endpoints for Inquiries
@@ -78,6 +80,9 @@ export const inquiryAPI = {
   getSellerInquiries: () => api.get('/inquiries/seller'),
   respondToInquiry: (inquiryId: string, response: string) => 
     api.post(`/inquiries/${inquiryId}/respond`, { response }),
+  // Add missing update inquiry status method
+  updateInquiryStatus: (inquiryId: string, status: string) =>
+    api.put(`/inquiries/${inquiryId}/status`, { status }),
 };
 
 // Export the default API client

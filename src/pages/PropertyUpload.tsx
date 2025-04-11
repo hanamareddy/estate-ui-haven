@@ -71,9 +71,7 @@ const PropertyUpload = () => {
         
         <PropertyForm 
           onSubmit={handleSubmit}
-          isSubmitting={createPropertyMutation.isPending}
-          submitButtonText="Create Property"
-          cancelButtonText="Cancel"
+          isLoading={createPropertyMutation.isPending}
           onCancel={() => navigate('/seller/dashboard')}
         />
       </div>
