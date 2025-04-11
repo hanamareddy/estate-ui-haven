@@ -38,7 +38,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
       const fetchProperty = async () => {
         setIsLoading(true);
         try {
-          // Fix here: Add proper error handling for the second parameter
+          // Fix here: Only pass propertyId as getProperty only expects one argument now
           const response = await getProperty(propertyId);
           if (response && response.data) {
             setProperty(response.data);
@@ -159,6 +159,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     );
   }
 
+  // Fix here: Add sqft property to match the expected interface
   const formattedProperty = {
     title: property.title,
     description: property.description,
@@ -171,6 +172,7 @@ const PropertyEdit = ({ propertyId, onSuccess, onCancel }: PropertyEditProps) =>
     bedrooms: String(property.bedrooms),
     bathrooms: String(property.bathrooms),
     size: String(property.sqft),
+    sqft: property.sqft, // Add this line to fix the error
     price: String(property.price),
     yearbuilt: property.constructionYear ? String(property.constructionYear) : "",
     amenities: Array.isArray(property.amenities) ? property.amenities.join(", ") : "",
