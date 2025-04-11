@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { propertyAPI } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
@@ -124,6 +123,17 @@ export const usePropertyAPI = () => {
     });
   };
 
+  // Get analytics data for properties
+  const usePropertyAnalytics = () => {
+    return useQuery({
+      queryKey: ['propertyAnalytics'],
+      queryFn: async () => {
+        const response = await propertyAPI.getAnalytics();
+        return response.data;
+      },
+    });
+  };
+
   return {
     useProperties,
     useProperty,
@@ -132,6 +142,7 @@ export const usePropertyAPI = () => {
     useUpdateProperty,
     useDeleteProperty,
     useSellerProperties,
+    usePropertyAnalytics,
   };
 };
 
